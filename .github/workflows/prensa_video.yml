@@ -1,0 +1,33 @@
+name: Video Press — Matrix (EN)
+
+on:
+  schedule:
+    - cron: '0 8,9,20,21 * * *' # 04:00, 05:00, 16:00, 17:00 ET (EDT)
+  workflow_dispatch:
+
+jobs:
+  renderizar_e_publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        horario:
+          - '06:00'
+          - '18:00'
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3'
+      - run: |
+          sudo apt-get update -y || true
+          sudo apt-get install -y ffmpeg
+          wget -q -O Anton.ttf https://github.com/google/fonts/raw/main/ofl/anton/Anton-Regular.ttf
+      - run: pip install --upgrade google-api-python-client google-auth-oauthlib google-auth-httplib2 Pillow gspread pytz edge-tts
+      - env:
+          GOOGLE_CREDENTIALS_EN: ${{ secrets.GOOGLE_CREDENTIALS_EN }}
+          YOUTUBE_TOKEN_EN: ${{ secrets.YOUTUBE_TOKEN_EN }}
+          HORARIO_ALVO: ${{ matrix.horario }}
+        run: python publicador.py

@@ -1,0 +1,20 @@
+name: Shorts Script Generator (EN)
+
+on:
+  schedule:
+    - cron: '23 4 * * *' # 00:23 ET (EDT)
+  workflow_dispatch:
+
+jobs:
+  produzir_shorts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3'
+      - run: pip install google-genai gspread
+      - env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_CREDENTIALS_EN: ${{ secrets.GOOGLE_CREDENTIALS_EN }}
+        run: python usina_shorts.py

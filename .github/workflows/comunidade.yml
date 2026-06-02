@@ -1,0 +1,22 @@
+name: Community Manager (EN)
+
+on:
+  schedule:
+    - cron: '0 13 * * *' # 09:00 ET (EDT)
+    - cron: '0 1 * * *'  # 21:00 ET (EDT)
+  workflow_dispatch:
+
+jobs:
+  interagir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3'
+      - run: pip install google-api-python-client google-auth-oauthlib google-auth-httplib2 gspread google-genai
+      - env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_CREDENTIALS_EN: ${{ secrets.GOOGLE_CREDENTIALS_EN }}
+          YOUTUBE_TOKEN_EN: ${{ secrets.YOUTUBE_TOKEN_EN }}
+        run: python comunidade.py

@@ -195,7 +195,7 @@ for index, linha in enumerate(dados, start=2):
                 except Exception as e: print(f"   ⚠️ Warning: Could not upload captions: {e}")
 
                 try:
-                    pid = "PLACEHOLDER_SHORTS_PLAYLIST"
+                    pid = "PLcBcFg8r0RDmlfPtguqIyIAz4HG1rk1PQ"  # Shorts EN playlist
                     youtube.playlistItems().insert(part="snippet", body={"snippet": {"playlistId": pid, "resourceId": {"kind": "youtube#video", "videoId": video_id}}}).execute()
                 except Exception as e: print(f"   ⚠️ Warning: Could not add to playlist: {e}")
 

@@ -1,8 +1,11 @@
-name: Video Press — Matrix (EN)
+name: 2. Prensa Longos (Matrix EN)
 
 on:
   schedule:
-    - cron: '0 8,9,20,21 * * *' # 04:00, 05:00, 16:00, 17:00 ET (EDT)
+    - cron: '30 8 * * *'  # 04:30 ET
+    - cron: '30 9 * * *'  # 05:30 ET
+    - cron: '30 20 * * *' # 16:30 ET
+    - cron: '30 21 * * *' # 17:30 ET
   workflow_dispatch:
 
 jobs:

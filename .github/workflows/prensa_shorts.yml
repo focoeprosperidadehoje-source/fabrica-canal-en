@@ -1,8 +1,9 @@
-name: Shorts Press — Matrix (EN)
+name: 2. Prensa Shorts (Matrix EN)
 
 on:
   schedule:
-    - cron: '0 16,17 * * *' # 12:00, 13:00 ET (EDT)
+    - cron: '30 15 * * *' # 11:30 ET
+    - cron: '30 16 * * *' # 12:30 ET
   workflow_dispatch:
 
 jobs:

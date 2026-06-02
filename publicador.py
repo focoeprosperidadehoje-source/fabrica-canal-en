@@ -44,8 +44,8 @@ ID_PASTA_THUMB_JESUS_NOITE = "1BFOWc6rNlhSpNAOatF2aWK7hEjPqMMzk"
 ID_PASTA_THUMB_MARIA = "1C04BHKkhGcxv1NRxxrmlDkmIdTO__S4k"  # Maria Universal thumbs
 
 # YouTube playlist IDs — fill after channel setup
-ID_PLAYLIST_JESUS_MANHA = "PLACEHOLDER_JESUS_MORNING"
-ID_PLAYLIST_MARIA_NOITE = "PLACEHOLDER_MARY_EVENING"
+ID_PLAYLIST_JESUS_MANHA = "PLcBcFg8r0RDmY0zEywQRGDDVEprFvK-QI"  # Morning Prayer (Jesus 06:00)
+ID_PLAYLIST_MARIA_NOITE = "PLcBcFg8r0RDkgQba8FVPPgHW0NgHEOzSm"  # Evening Prayer (Maria 18:00)
 
 def baixar_arquivo(file_id, destino):
     for tentativa in range(4):

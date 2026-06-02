@@ -53,11 +53,11 @@ if texto_fixo:
                     if not any(t['snippet']['topLevelComment']['snippet'].get('authorChannelId', {}).get('value') == MEU_CANAL_ID for t in comentarios.get('items', [])):
 
                         if "#shorts" in v_titulo.lower():
-                            comentario_final = f"{texto_fixo}\n\n🙏 May this quick prayer bless your day! Visit our channel for the full prayers.\n\nOur Playlists:\n🌅 Morning Prayers: https://www.youtube.com/playlist?list=PLACEHOLDER_MORNING\n🌌 Evening Prayers: https://www.youtube.com/playlist?list=PLACEHOLDER_EVENING"
+                            comentario_final = f"{texto_fixo}\n\n🙏 May this quick prayer bless your day! Visit our channel for the full prayers.\n\nOur Playlists:\n🌅 Morning Prayers: https://www.youtube.com/playlist?list=PLcBcFg8r0RDmY0zEywQRGDDVEprFvK-QI\n🌌 Evening Prayers: https://www.youtube.com/playlist?list=PLcBcFg8r0RDkgQba8FVPPgHW0NgHEOzSm"
                         else:
-                            link_playlist = "https://www.youtube.com/playlist?list=PLACEHOLDER_ALL"
-                            if "morning" in v_titulo.lower(): link_playlist = "https://www.youtube.com/playlist?list=PLACEHOLDER_MORNING"
-                            elif "night" in v_titulo.lower() or "sleep" in v_titulo.lower() or "evening" in v_titulo.lower(): link_playlist = "https://www.youtube.com/playlist?list=PLACEHOLDER_EVENING"
+                            link_playlist = "https://www.youtube.com/playlist?list=PLcBcFg8r0RDmY0zEywQRGDDVEprFvK-QI"
+                            if "morning" in v_titulo.lower(): link_playlist = "https://www.youtube.com/playlist?list=PLcBcFg8r0RDmY0zEywQRGDDVEprFvK-QI"
+                            elif "night" in v_titulo.lower() or "sleep" in v_titulo.lower() or "evening" in v_titulo.lower(): link_playlist = "https://www.youtube.com/playlist?list=PLcBcFg8r0RDkgQba8FVPPgHW0NgHEOzSm"
                             comentario_final = f"{texto_fixo}\n\nKeep praying with us here: {link_playlist}"
 
                         youtube.commentThreads().insert(part="snippet", body={"snippet": {"videoId": v_id, "topLevelComment": {"snippet": {"textOriginal": comentario_final}}}}).execute()

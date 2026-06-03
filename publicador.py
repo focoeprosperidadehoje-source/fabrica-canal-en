@@ -113,7 +113,7 @@ def criar_thumbnail(img_path, texto_curto, horario, persona, caminho_saida):
     img = img.resize((1920, 1080)).convert("RGB")
 
     draw = ImageDraw.Draw(img)
-    cor_barra = "#FFD700" if "06:00" in horario else "#00BFFF"
+    cor_barra = "#B22234" if "06:00" in horario else "#3C3B6E"  # American flag: red (morning) / blue (evening)
     draw.rectangle([(0, 0), (120, 1080)], fill=cor_barra)
 
     texto = texto_curto.upper()

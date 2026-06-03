@@ -34,3 +34,5 @@ jobs:
           YOUTUBE_TOKEN_EN: ${{ secrets.YOUTUBE_TOKEN_EN }}
           HORARIO_ALVO: ${{ matrix.horario }}
         run: python publicador.py
+
+# reindex

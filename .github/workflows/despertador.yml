@@ -20,3 +20,5 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GOOGLE_CREDENTIALS_EN: ${{ secrets.GOOGLE_CREDENTIALS_EN }}
         run: python usina.py
+
+# reindex

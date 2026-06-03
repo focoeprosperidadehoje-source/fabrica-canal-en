@@ -1,4 +1,4 @@
-import os, sys, json, time, re, datetime
+﻿import os, sys, json, time, re, datetime
 from google.genai import Client
 from google.oauth2.service_account import Credentials
 import gspread
@@ -138,7 +138,7 @@ for video in grade_para_processar:
         try:
             tema_gerado = client.models.generate_content(model=modelos_cascata[i], contents=prompt_tema).text.replace('*', '').replace('"', '').replace('[', '').replace(']', '').strip()
             break
-        except: time.sleep(esperas_exponenciais[i])
+        except Exception as gemini_err: print(f"   ⚠️ Gemini error (attempt {i+1}/5): {gemini_err}"); time.sleep(esperas_exponenciais[i])
 
     if not tema_gerado: continue
     time.sleep(5)
@@ -182,7 +182,7 @@ for video in grade_para_processar:
         try:
             texto_ia = client.models.generate_content(model=modelos_cascata[i], contents=prompt_principal).text
             break
-        except: time.sleep(esperas_exponenciais[i])
+        except Exception as gemini_err: print(f"   ⚠️ Gemini error (attempt {i+1}/5): {gemini_err}"); time.sleep(esperas_exponenciais[i])
 
     if not texto_ia: continue
 
@@ -205,3 +205,4 @@ for video in grade_para_processar:
         proxima_linha_vazia += 1
         time.sleep(5)
     except Exception as e: print(f"   ❌ Failed to save: {e}")
+

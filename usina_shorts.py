@@ -1,4 +1,4 @@
-import os, sys, json, time, re, datetime
+﻿import os, sys, json, time, re, datetime
 from google.genai import Client
 from google.oauth2.service_account import Credentials
 import gspread
@@ -131,7 +131,7 @@ for video in grade_para_processar:
         try:
             texto_ia = client.models.generate_content(model=modelo_usina, contents=prompt_principal).text
             break
-        except: time.sleep(10)
+        except Exception as gemini_err: print(f"   ⚠️ Gemini error (attempt {i+1}/5): {gemini_err}"); time.sleep(10)
 
     if not texto_ia: continue
 
@@ -152,3 +152,4 @@ for video in grade_para_processar:
         proxima_linha_vazia += 1
         time.sleep(3)
     except Exception as e: print(f"   ❌ Failed to save: {e}")
+

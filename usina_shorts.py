@@ -127,11 +127,11 @@ for video in grade_para_processar:
     """
 
     texto_ia = None
-    for _ in range(3):
+    for tentativa in range(3):
         try:
             texto_ia = client.models.generate_content(model=modelo_usina, contents=prompt_principal).text
             break
-        except Exception as gemini_err: print(f"   ⚠️ Gemini error (attempt {i+1}/5): {gemini_err}"); time.sleep(10)
+        except Exception as gemini_err: print(f"   ⚠️ Gemini error (attempt {tentativa+1}/3): {gemini_err}"); time.sleep(10)
 
     if not texto_ia: continue
 

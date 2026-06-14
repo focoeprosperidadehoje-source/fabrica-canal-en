@@ -204,6 +204,5 @@ for index, linha in enumerate(dados, start=2):
             except Exception as e:
                 print(f"   ❌ YouTube error (Attempt {tentativa+1}/3): {e}")
                 time.sleep(15)
-        break
 
 print("\n🚀 MATRIX SERVER SHORTS SHUTTING DOWN.")

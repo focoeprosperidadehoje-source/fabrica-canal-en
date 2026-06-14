@@ -21,9 +21,9 @@ def obter_cascata_de_modelos():
         pro_models = [m.name for m in modelos_disponiveis if 'generateContent' in m.supported_generation_methods and 'pro' in m.name and 'vision' not in m.name]
         melhor_flash = sorted(flash_models, reverse=True)[0] if flash_models else 'gemini-2.5-flash'
         melhor_pro = sorted(pro_models, reverse=True)[0] if pro_models else 'gemini-2.5-pro'
-        return [melhor_flash, melhor_flash, melhor_flash, melhor_pro, melhor_pro]
+        return [melhor_flash, melhor_flash, melhor_flash, melhor_flash, melhor_flash]
     except:
-        return ['gemini-2.5-flash', 'gemini-2.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-pro']
+        return ['gemini-2.5-flash', 'gemini-2.5-flash', 'gemini-2.5-flash', 'gemini-2.5-flash', 'gemini-2.5-flash']
 
 modelos_cascata = obter_cascata_de_modelos()
 

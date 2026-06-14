@@ -2,7 +2,7 @@ name: 1. Usina Shorts (EN)
 
 on:
   schedule:
-    - cron: '0 2 * * *' # 22:00 ET (prev day)
+    - cron: '30 0 * * *' # 20:30 ET (prev day) — roda antes do Usina Longos
   workflow_dispatch:
 
 jobs:

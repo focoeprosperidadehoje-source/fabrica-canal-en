@@ -261,7 +261,7 @@ for index, linha in enumerate(dados, start=2):
 
         body = {
             "snippet": {"title": titulo[:100], "description": f"{descricao_ia}{capitulos}\n\n{texto_fixo}", "tags": tags_lista, "categoryId": "22", "defaultLanguage": "en-US", "defaultAudioLanguage": "en-US"},
-            "status": {"privacyStatus": "private", "selfDeclaredMadeForKids": False, "selfDeclaredMadeWithAlteredContent": True}
+            "status": {"privacyStatus": "private" if publish_at else "public", "selfDeclaredMadeForKids": False, "selfDeclaredMadeWithAlteredContent": True}
         }
         if publish_at: body["status"]["publishAt"] = publish_at
 

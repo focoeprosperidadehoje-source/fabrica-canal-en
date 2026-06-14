@@ -177,7 +177,7 @@ for index, linha in enumerate(dados, start=2):
                 "defaultAudioLanguage": "en-US"
             },
             "status": {
-                "privacyStatus": "private",
+                "privacyStatus": "private" if publish_at else "public",
                 "selfDeclaredMadeForKids": False,
                 "selfDeclaredMadeWithAlteredContent": True
             }

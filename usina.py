@@ -4,6 +4,8 @@ from google.oauth2.service_account import Credentials
 import gspread
 
 CHAVE_API = os.environ.get("GEMINI_API_KEY")
+CHAVE_API_2 = os.environ.get("GEMINI_API_KEY_2", "")
+CHAVES_GEMINI = [k for k in [CHAVE_API, CHAVE_API_2] if k]
 GOOGLE_JSON = os.environ.get("GOOGLE_CREDENTIALS_EN")
 
 print("🔐 Authenticating with Google Sheets via Service Account...")
@@ -28,6 +30,18 @@ def obter_cascata_de_modelos():
         return ['gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash']
 
 modelos_cascata = obter_cascata_de_modelos()
+
+def _gerar(modelo, prompt):
+    for chave in CHAVES_GEMINI:
+        try:
+            c = Client(api_key=chave, http_options={'api_version': 'v1'})
+            return c.models.generate_content(model=modelo, contents=prompt).text
+        except Exception as e:
+            if "429" in str(e) and chave != CHAVES_GEMINI[-1]:
+                print(f"[WARN] 429 on key ...{chave[-6:]}. Trying key 2...")
+                continue
+            raise
+    raise RuntimeError("All Gemini keys failed.")
 
 def calcular_contexto_sazonal(data_alvo):
     ano = data_alvo.year
@@ -138,7 +152,7 @@ for video in grade_para_processar:
     tema_gerado = None
     for i in range(5):
         try:
-            tema_gerado = client.models.generate_content(model=modelos_cascata[i], contents=prompt_tema).text.replace('*', '').replace('"', '').replace('[', '').replace(']', '').strip()
+            tema_gerado = _gerar(modelos_cascata[i], prompt_tema).replace('*', '').replace('"', '').replace('[', '').replace(']', '').strip()
             break
         except Exception as gemini_err: print(f"   ⚠️ Gemini error (attempt {i+1}/5): {gemini_err}"); time.sleep(esperas_exponenciais[i])
 
@@ -149,12 +163,18 @@ for video in grade_para_processar:
     cta_comentarios = "At the end, ask the listener to write a reason for gratitude in the comments." if horario == "18:00" else "At the beginning, naturally ask: 'If you believe, type Amen in the comments right now'."
     regra_persona = "MANDATORY: As you are addressing Jesus Christ, it is STRICTLY FORBIDDEN to mention Mary or the Virgin." if persona == 'JESUS' else "MANDATORY: As you are addressing Mary, you MUST use the invocations 'Blessed Virgin Mary', 'Mother Mary' or 'Our Lady'."
 
+    instrucao_titulo = (
+        "TITLE:[Magnetic title. MANDATORY to start with 'Our Lady' or 'Blessed Mother'. FORMAT: 'Our Lady [Believer's pain] [urgent promise]'. Ex: 'Our Lady Heals Your Family Tonight'. NO DATE. NO ASTERISKS OR BRACKETS]"
+        if persona == 'MARIA' else
+        "TITLE:[Magnetic title. MANDATORY to start with the believer's pain/situation, NEVER with 'Jesus' or 'Prayer'. FORMAT: '[Critical pain of the believer] — [urgent relief promise]'. Ex: 'Your Family Is Suffering — Pray This NOW'. NO DATE. NO ASTERISKS OR BRACKETS]"
+    )
+
     prompt_principal = f"""
     Act as an empathetic spiritual guide and brother in faith. Write an extensive prayer of 1500 to 1800 words about "{tema_gerado}" directed to {persona_prompt}.
     CONTEXT: Period of the day: "{periodo}". Focus: "{foco_teologico}". Seasonality: "{contexto_sazonal}".
 
     RETENTION AND COPYWRITING RULES (VERY IMPORTANT):
-    1. TITLE FORMULA: The title MUST follow the formula: [Believer's Pain] + [Solution/Miracle]. It is STRICTLY FORBIDDEN to start the title with the word "Prayer".
+    1. TITLE FORMULA: Follow EXACTLY the format instruction below. For Our Lady: MANDATORY to start with 'Our Lady' or 'Blessed Mother'. For Jesus: start with the believer's pain. It is STRICTLY FORBIDDEN to start with the word "Prayer".
     2. THUMB FORMULA: Maximum 4 words. MUST be an urgency trigger connected to the theme (Ex: "URGENT MIRACLE TODAY", "SAVE YOUR FAMILY", "END ANXIETY NOW").
     3. THE 15-SECOND RULE (HOOK 3A): The beginning of the script MUST have 3 quick blocks:
        - Attention (0-5s): An EMPATHETIC AFFIRMATION about the believer's pain. (FORBIDDEN to use direct questions).
@@ -172,17 +192,17 @@ for video in grade_para_processar:
     {regra_meditacao}
 
     EXACT FORMAT:
-    TITLE: [Pain + Solution]
+    {instrucao_titulo}
     THUMB: [Urgency Trigger — Max 4 words]
     SCRIPT: [Complete prayer of 1500 to 1800 words]
-    DESC: [Description of 3 paragraphs with strong SEO]
+    DESC: [Description of 3 paragraphs with strong SEO. FIRST paragraph: invite to the channel's LIVE 24-hour prayers ('Coming soon: pray live with us 24 hours — activate the bell to never miss a prayer'). SECOND paragraph: emotional description of this prayer. THIRD paragraph: keywords and hashtags.]
     TAGS: [Tags separated by commas]
     """
 
     texto_ia = None
     for i in range(5):
         try:
-            texto_ia = client.models.generate_content(model=modelos_cascata[i], contents=prompt_principal).text
+            texto_ia = _gerar(modelos_cascata[i], prompt_principal)
             break
         except Exception as gemini_err: print(f"   ⚠️ Gemini error (attempt {i+1}/5): {gemini_err}"); time.sleep(esperas_exponenciais[i])
 

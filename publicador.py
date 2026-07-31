@@ -252,6 +252,8 @@ for index, linha in enumerate(dados, start=2):
         capitulos = f"\n\n⏱️ Prayer Chapters:\n{format_time(0)} Beginning of the Prayer\n{format_time(duracao_audio * 0.33)} Supplication and Faith\n{format_time(duracao_audio * 0.66)} Surrender and Gratitude"
         if tem_extensao: capitulos += f"\n{format_time(duracao_audio)} Meditation and Deep Peace"
 
+        bloco_live = "\n\n🔴 COMING SOON — LIVE 24 HOURS\nSoon we will be broadcasting continuously 24 hours a day. Your supplications, prayer requests and the names of your loved ones will be mentioned in unceasing prayer. Activate the 🔔 bell to be among the first to join this moment of grace!"
+
         try:
             tz_ny = pytz.timezone('America/New_York')
             data_hora_alvo = tz_ny.localize(datetime.datetime.strptime(f"{data_str} {horario_str}", "%Y-%m-%d %H:%M"))
@@ -260,7 +262,7 @@ for index, linha in enumerate(dados, start=2):
         except: publish_at = None
 
         body = {
-            "snippet": {"title": titulo[:100], "description": f"{descricao_ia}{capitulos}\n\n{texto_fixo}", "tags": tags_lista, "categoryId": "22", "defaultLanguage": "en-US", "defaultAudioLanguage": "en-US"},
+            "snippet": {"title": titulo[:100], "description": f"{descricao_ia}{capitulos}{bloco_live}\n\n{texto_fixo}", "tags": tags_lista, "categoryId": "22", "defaultLanguage": "en-US", "defaultAudioLanguage": "en-US"},
             "status": {"privacyStatus": "private" if publish_at else "public", "selfDeclaredMadeForKids": False, "selfDeclaredMadeWithAlteredContent": True}
         }
         if publish_at: body["status"]["publishAt"] = publish_at

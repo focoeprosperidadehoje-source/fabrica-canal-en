@@ -32,6 +32,60 @@ drive_service = build_drive('drive', 'v3', credentials=creds_sheets)
 PASTA_TEMP = "/tmp/fabrica_en"
 os.makedirs(PASTA_TEMP, exist_ok=True)
 
+def _gerar_overlay_particulas(saida, largura=1920, altura=1080, duracao_s=20, fps=30):
+    """Gera vídeo loop de partículas douradas ascendentes (fundo preto, blend=screen)."""
+    if os.path.exists(saida):
+        return saida
+    try:
+        import numpy as np
+    except ImportError:
+        print("[WARN] numpy ausente — partículas desativadas.")
+        return None
+    n_frames = duracao_s * fps; n = 400
+    rng = np.random.default_rng(42)
+    px = rng.uniform(0, largura, n).astype(np.float32); py = rng.uniform(0, altura, n).astype(np.float32)
+    vx = rng.uniform(-0.4, 0.4, n).astype(np.float32); vy = (rng.uniform(35, 55, n) / fps).astype(np.float32)
+    age = rng.uniform(0, 80, n).astype(np.float32); life = rng.uniform(60, 130, n).astype(np.float32)
+    CORES = np.array([[255,215,0],[255,200,0],[255,230,110],[255,180,0],[255,245,160]], dtype=np.float32)
+    cor_idx = rng.integers(0, len(CORES), n)
+    tmp = saida + ".ptmp.mp4"
+    proc = subprocess.Popen(['ffmpeg','-y','-f','rawvideo','-vcodec','rawvideo','-s',f'{largura}x{altura}',
+        '-pix_fmt','rgb24','-r',str(fps),'-i','pipe:0','-c:v','libx264','-preset','fast','-crf','25',
+        '-pix_fmt','yuv420p','-an',tmp], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        for _ in range(n_frames):
+            frame = np.zeros((altura, largura, 3), dtype=np.uint8)
+            py -= vy; px += vx; age += 1.0
+            mortas = (age >= life) | (py < -10)
+            if mortas.any():
+                m = int(mortas.sum())
+                px[mortas] = rng.uniform(0, largura, m).astype(np.float32)
+                py[mortas] = (altura + rng.uniform(0, 40, m)).astype(np.float32)
+                age[mortas] = 0.0; life[mortas] = rng.uniform(60, 130, m).astype(np.float32)
+                vy[mortas] = (rng.uniform(35, 55, m) / fps).astype(np.float32)
+                vx[mortas] = rng.uniform(-0.4, 0.4, m).astype(np.float32)
+                cor_idx[mortas] = rng.integers(0, len(CORES), m)
+            px %= largura
+            t = np.clip(age / life, 0.0, 1.0); fade = (np.sin(np.pi * t) * 0.90).astype(np.float32)
+            xi = np.clip(px.astype(np.int32), 0, largura-1); yi = np.clip(py.astype(np.int32), 0, altura-1)
+            cores = (CORES[cor_idx] * fade[:, np.newaxis]).astype(np.uint8)
+            for dy, dx in [(0,0),(0,1),(0,-1),(1,0),(-1,0),(1,1),(-1,-1),(1,-1),(-1,1)]:
+                att = np.float32(1.0 if (dx==0 and dy==0) else 0.6)
+                yy = np.clip(yi+dy, 0, altura-1); xx = np.clip(xi+dx, 0, largura-1)
+                np.maximum.at(frame, (yy, xx), (cores.astype(np.float32)*att).clip(0,255).astype(np.uint8))
+            proc.stdin.write(frame.tobytes())
+        proc.stdin.close(); proc.wait()
+        if proc.returncode != 0: raise RuntimeError("FFmpeg partículas falhou")
+        os.rename(tmp, saida); print(f"[OK] Overlay partículas: {saida}"); return saida
+    except Exception as e:
+        try: proc.stdin.close()
+        except: pass
+        proc.kill()
+        if os.path.exists(tmp): os.remove(tmp)
+        print(f"[WARN] Partículas: {e}"); return None
+
+_PARTICLES_PATH = _gerar_overlay_particulas(f"{PASTA_TEMP}/particles_loop.mp4")
+
 # Shared asset folders
 ID_PASTA_JESUS = "1kSl8xFW9_4Q_03XKq1c2dunovvlo3urH"
 ID_PASTA_MARIA = "1IyWdkNqdKQn8kDX-EWSEjKqOLNPEg6jk"      # Maria Universal (horizontal)
@@ -236,6 +290,19 @@ for index, linha in enumerate(dados, start=2):
             for ts in lista_ts: f.write(f"file '{ts}'\n")
         video_mudo = f"{PASTA_TEMP}/mudo.mp4"
         subprocess.run(f'ffmpeg -y -f concat -safe 0 -i "{arquivo_concat}" -c copy "{video_mudo}"', shell=True, capture_output=True)
+
+        # Overlay de partículas douradas (blend=screen, opacidade 0.30)
+        if _PARTICLES_PATH:
+            video_mudo_p = f"{PASTA_TEMP}/mudo_p.mp4"
+            r_p = subprocess.run([
+                'ffmpeg', '-y', '-i', video_mudo,
+                '-stream_loop', '-1', '-i', _PARTICLES_PATH,
+                '-filter_complex', '[0:v][1:v]blend=all_mode=screen:all_opacity=0.30[v]',
+                '-map', '[v]', '-c:v', 'libx264', '-preset', 'ultrafast',
+                '-pix_fmt', 'yuv420p', '-an', video_mudo_p
+            ], capture_output=True)
+            if r_p.returncode == 0:
+                video_mudo = video_mudo_p
 
         video_final = f"{PASTA_TEMP}/final.mp4"
         if sfx_local:

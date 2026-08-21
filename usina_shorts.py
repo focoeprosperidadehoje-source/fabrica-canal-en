@@ -31,6 +31,7 @@ PILARES = {
     4: "Mercy and Physical Healing", 5: "The Mantle of Mary", 6: "Miracles and Gratitude"
 }
 GRADE_SHORTS = [
+    {"horario": "06:00", "personagem": "Maria", "idioma": "EN", "foco": "Morning: Under the mantle of Our Lady, start your day with a miracle.", "ref": "18:00"},
     {"horario": "14:00", "personagem": "Maria", "idioma": "EN", "foco": "Afternoon: Intercession, healing and miracles.", "ref": "18:00"}
 ]
 

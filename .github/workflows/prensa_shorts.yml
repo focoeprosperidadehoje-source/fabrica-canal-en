@@ -2,8 +2,10 @@ name: 2. Prensa Shorts (Matrix EN)
 
 on:
   schedule:
-    - cron: '30 15 * * *' # 11:30 ET
-    - cron: '30 16 * * *' # 12:30 ET
+    - cron: '30 9 * * *'  # 05:30 ET (Short manhã)
+    - cron: '30 10 * * *' # 06:30 ET (backup manhã)
+    - cron: '30 15 * * *' # 11:30 ET (Short tarde)
+    - cron: '30 16 * * *' # 12:30 ET (backup tarde)
   workflow_dispatch:
 
 jobs:
@@ -15,6 +17,7 @@ jobs:
     strategy:
       matrix:
         horario:
+          - '06:00'
           - '14:00'
       fail-fast: false
 

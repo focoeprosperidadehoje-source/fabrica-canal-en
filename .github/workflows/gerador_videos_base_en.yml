@@ -1,0 +1,61 @@
+name: 🎬 Gerador Vídeos Base EN
+
+on:
+  schedule:
+    - cron: '0 4 * * 0'  # Sundays at 4h UTC
+  workflow_dispatch:
+
+jobs:
+  gerar_videos:
+    name: Generate base videos EN (Ken Burns + particles) → rsync VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg python3-pil python3-numpy
+          pip install --quiet google-api-python-client google-auth pytz python-dotenv
+
+      - name: Set up Google credentials
+        env:
+          GOOGLE_CREDENTIALS_EN: ${{ secrets.GOOGLE_CREDENTIALS_EN }}
+        run: |
+          echo "$GOOGLE_CREDENTIALS_EN" > /tmp/google_credentials_en.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/google_credentials_en.json" >> $GITHUB_ENV
+
+      - name: Generate base videos EN
+        env:
+          DRIVE_FOLDER_ID:    ${{ vars.DRIVE_OUR_LADY_H_ID }}
+          VIDEO_PREFIX:       ourlady
+          OUTPUT_DIR:         videos_base_en
+        run: python3 ao_vivo_en/gerar_videos_base_en.py
+
+      - name: List generated videos
+        run: |
+          echo "EN base videos generated:"
+          ls -lh videos_base_en/ 2>/dev/null || echo "(none)"
+
+      - name: Configure SSH for VPS
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY_VPS_EN }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/vps_key
+          chmod 600 ~/.ssh/vps_key
+          ssh-keyscan -H 80.241.213.27 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Send base videos to VPS via rsync
+        run: |
+          rsync -avz --progress \
+            -e "ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no" \
+            videos_base_en/ \
+            root@80.241.213.27:/root/ao_vivo_en/videos_base/
+
+      - name: Remove temporary SSH key
+        if: always()
+        run: rm -f ~/.ssh/vps_key

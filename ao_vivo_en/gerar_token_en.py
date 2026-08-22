@@ -17,9 +17,18 @@ import os
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
+def _load_env(path: str):
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip())
+    except FileNotFoundError:
+        pass
 
-load_dotenv("/root/ao_vivo_en/.env")
+_load_env("/root/ao_vivo_en/.env")
 
 CLIENT_ID     = os.environ.get("YT_CLIENT_ID", "")
 CLIENT_SECRET = os.environ.get("YT_CLIENT_SECRET", "")

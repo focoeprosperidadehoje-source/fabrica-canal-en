@@ -31,13 +31,15 @@ jobs:
 
       - name: Install Python deps on VPS
         run: |
-          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 "
-            apt-get install -y python3-pip -qq 2>/dev/null || true
-            python3 -m pip install -q --break-system-packages \
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 bash << 'ENDSSH'
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y python3-pip
+            pip3 install --break-system-packages \
               google-auth-oauthlib google-genai google-api-python-client \
-              google-auth pytz edge-tts python-dotenv pillow numpy \
-              && echo '✅ Python deps installed'
-          "
+              google-auth pytz edge-tts python-dotenv pillow numpy
+            echo "✅ Python deps installed"
+          ENDSSH
 
       - name: Remove temporary SSH key
         if: always()

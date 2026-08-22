@@ -1,4 +1,4 @@
-name: 🚀 Deploy ao vivo EN
+﻿name: 🚀 Deploy ao vivo EN
 
 on:
   push:
@@ -28,23 +28,23 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/vps_key
           chmod 600 ~/.ssh/vps_key
-          ssh-keyscan -H 80.241.213.27 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H 169.58.220.233 >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Copy script to VPS
         if: ${{ github.event.inputs.modo != 'status' }}
         run: |
           scp -i ~/.ssh/vps_key -o StrictHostKeyChecking=no \
             ao_vivo_en/ao_vivo_en.py \
-            root@80.241.213.27:/root/ao_vivo_en/ao_vivo_en.py
+            root@169.58.220.233:/root/ao_vivo_en/ao_vivo_en.py
 
       - name: Restart or check service
         run: |
           MODO="${{ github.event.inputs.modo }}"
           if [ "$MODO" = "status" ]; then
-            ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@80.241.213.27 \
+            ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 \
               "systemctl is-active ao_vivo_en; journalctl -u ao_vivo_en -n 30 --no-pager"
           else
-            ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@80.241.213.27 \
+            ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 \
               "systemctl restart ao_vivo_en && sleep 5 && systemctl is-active ao_vivo_en && echo DEPLOY_OK"
           fi
 

@@ -1,4 +1,4 @@
-name: 🎙️ Gerador de Áudio Live EN
+﻿name: 🎙️ Gerador de Áudio Live EN
 
 on:
   schedule:
@@ -43,16 +43,16 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/vps_key
           chmod 600 ~/.ssh/vps_key
-          ssh-keyscan -H 80.241.213.27 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H 169.58.220.233 >> ~/.ssh/known_hosts 2>/dev/null
           ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
-            root@80.241.213.27 "echo SSH_TEST_OK && hostname" || true
+            root@169.58.220.233 "echo SSH_TEST_OK && hostname" || true
 
       - name: Send EN blocks to VPS via rsync
         run: |
           rsync -avz --progress \
             -e "ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no" \
             blocos_en/ \
-            root@80.241.213.27:/root/ao_vivo_en/blocos/
+            root@169.58.220.233:/root/ao_vivo_en/blocos/
 
       - name: Remove temporary SSH key
         if: always()

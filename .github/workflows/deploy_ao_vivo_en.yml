@@ -42,12 +42,10 @@ jobs:
         run: |
           ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 bash << 'ENDSSH'
             set -e
-            if [ ! -d /root/venv_en ]; then
-              python3 -m venv /root/venv_en
-              echo "✅ venv_en criado"
-            else
-              echo "✅ venv_en já existe"
-            fi
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y python3-venv python3-pip -qq 2>/dev/null || true
+            python3 -m venv --clear /root/venv_en
+            echo "✅ venv_en recriado"
             /root/venv_en/bin/pip install --upgrade pip --quiet
             /root/venv_en/bin/pip install --quiet \
               google-genai \

@@ -52,7 +52,10 @@ try:
 except ImportError:
     print("Installing google-auth-oauthlib...")
     import subprocess
-    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "google-auth-oauthlib"], check=True)
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "-q", "--break-system-packages", "google-auth-oauthlib"],
+        check=True
+    )
     from google_auth_oauthlib.flow import InstalledAppFlow
 
 client_config = {

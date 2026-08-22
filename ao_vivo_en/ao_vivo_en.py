@@ -27,7 +27,6 @@ from pathlib import Path
 from io import BytesIO
 
 import pytz
-from dotenv import load_dotenv
 from google import genai
 from google.oauth2.service_account import Credentials as SACredentials
 from google.auth.transport.requests import Request
@@ -36,7 +35,19 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 import edge_tts
 
-load_dotenv()
+def _load_env(path=".env"):
+    import os
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip())
+    except FileNotFoundError:
+        pass
+
+_load_env(str(Path("/root/ao_vivo_en/.env")))
 
 try:
     from PIL import Image, ImageDraw, ImageFont

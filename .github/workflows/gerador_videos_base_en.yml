@@ -30,7 +30,7 @@ jobs:
 
       - name: Generate base videos EN
         env:
-          DRIVE_FOLDER_ID:    ${{ vars.DRIVE_OUR_LADY_H_ID }}
+          DRIVE_FOLDER_ID:    "1IyWdkNqdKQn8kDX-EWSEjKqOLNPEg6jk"
           VIDEO_PREFIX:       ourlady
           OUTPUT_DIR:         videos_base_en
         run: python3 ao_vivo_en/gerar_videos_base_en.py

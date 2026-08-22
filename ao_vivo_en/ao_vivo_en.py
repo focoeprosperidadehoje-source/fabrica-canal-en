@@ -873,7 +873,10 @@ def _iniciar_proc_playlist(playlist: Path, sk: str, nome: str) -> subprocess.Pop
         "-fflags", "+genpts",
         "-f", "concat", "-safe", "0",
         "-i", rel_playlist,
-        "-c", "copy",
+        "-c:v", "libx264", "-preset", "ultrafast",
+        "-b:v", "2000k", "-maxrate", "2500k", "-bufsize", "5000k",
+        "-g", "60", "-keyint_min", "30",
+        "-c:a", "copy",
         "-f", "flv", f"{INGEST_URL}/{sk}",
     ]
     log_ffmpeg = BASE_DIR / f"ffmpeg_{nome.lower()}.log"

@@ -29,10 +29,15 @@ jobs:
             root@169.58.220.233:/root/ao_vivo_en/gerar_token_en.py
           echo "✅ gerar_token_en.py copied to /root/ao_vivo_en/"
 
-      - name: Install google-auth-oauthlib on VPS
+      - name: Install Python deps on VPS
         run: |
-          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 \
-            "pip3 install -q google-auth-oauthlib && echo '✅ google-auth-oauthlib installed'"
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 "
+            apt-get install -y python3-pip -qq 2>/dev/null || true
+            python3 -m pip install -q --break-system-packages \
+              google-auth-oauthlib google-genai google-api-python-client \
+              google-auth pytz edge-tts python-dotenv pillow numpy \
+              && echo '✅ Python deps installed'
+          "
 
       - name: Remove temporary SSH key
         if: always()

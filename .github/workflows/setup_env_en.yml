@@ -1,0 +1,46 @@
+name: ⚙️ Setup .env EN (client_id/secret from YOUTUBE_TOKEN_EN)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    name: Extract client_id/secret and update .env on VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Configure SSH for VPS
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY_VPS_EN }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/vps_key
+          chmod 600 ~/.ssh/vps_key
+          ssh-keyscan -H 169.58.220.233 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Extract client_id/secret and write to .env
+        env:
+          YOUTUBE_TOKEN_EN: ${{ secrets.YOUTUBE_TOKEN_EN }}
+        run: |
+          CLIENT_ID=$(echo "$YOUTUBE_TOKEN_EN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('client_id',''))")
+          CLIENT_SECRET=$(echo "$YOUTUBE_TOKEN_EN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('client_secret',''))")
+          if [ -z "$CLIENT_ID" ]; then
+            echo "ERROR: client_id not found in YOUTUBE_TOKEN_EN"
+            exit 1
+          fi
+          echo "client_id found: ${CLIENT_ID:0:8}..."
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 "
+            grep -q '^YT_CLIENT_ID=' /root/ao_vivo_en/.env && \
+              sed -i 's|^YT_CLIENT_ID=.*|YT_CLIENT_ID=$CLIENT_ID|' /root/ao_vivo_en/.env || \
+              echo 'YT_CLIENT_ID=$CLIENT_ID' >> /root/ao_vivo_en/.env
+            grep -q '^YT_CLIENT_SECRET=' /root/ao_vivo_en/.env && \
+              sed -i 's|^YT_CLIENT_SECRET=.*|YT_CLIENT_SECRET=$CLIENT_SECRET|' /root/ao_vivo_en/.env || \
+              echo 'YT_CLIENT_SECRET=$CLIENT_SECRET' >> /root/ao_vivo_en/.env
+            echo '✅ YT_CLIENT_ID and YT_CLIENT_SECRET added to /root/ao_vivo_en/.env'
+            grep '^YT_CLIENT_ID=' /root/ao_vivo_en/.env | cut -c1-30
+          "
+
+      - name: Remove temporary SSH key
+        if: always()
+        run: rm -f ~/.ssh/vps_key

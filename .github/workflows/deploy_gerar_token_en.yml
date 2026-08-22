@@ -1,0 +1,39 @@
+name: 🔑 Deploy gerar_token_en → VPS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Copy token generator script to VPS EN
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH for VPS
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY_VPS_EN }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/vps_key
+          chmod 600 ~/.ssh/vps_key
+          ssh-keyscan -H 169.58.220.233 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copy gerar_token_en.py to VPS
+        run: |
+          scp -i ~/.ssh/vps_key -o StrictHostKeyChecking=no \
+            ao_vivo_en/gerar_token_en.py \
+            root@169.58.220.233:/root/ao_vivo_en/gerar_token_en.py
+          echo "✅ gerar_token_en.py copied to /root/ao_vivo_en/"
+
+      - name: Install google-auth-oauthlib on VPS
+        run: |
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 \
+            "pip3 install -q google-auth-oauthlib && echo '✅ google-auth-oauthlib installed'"
+
+      - name: Remove temporary SSH key
+        if: always()
+        run: rm -f ~/.ssh/vps_key

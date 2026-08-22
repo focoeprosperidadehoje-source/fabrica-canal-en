@@ -1,9 +1,10 @@
-﻿name: 🚀 Deploy ao vivo EN
+name: 🚀 Deploy ao vivo EN
 
 on:
   push:
     paths:
       - 'ao_vivo_en/ao_vivo_en.py'
+      - 'ao_vivo_en/ao_vivo_en.service'
   workflow_dispatch:
     inputs:
       modo:
@@ -15,7 +16,7 @@ jobs:
   deploy:
     name: Deploy ao_vivo_en.py to VPS
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -30,23 +31,64 @@ jobs:
           chmod 600 ~/.ssh/vps_key
           ssh-keyscan -H 169.58.220.233 >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Copy script to VPS
-        if: ${{ github.event.inputs.modo != 'status' }}
+      - name: Status do serviço (modo status)
+        if: github.event.inputs.modo == 'status'
+        run: |
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 \
+            "systemctl is-active ao_vivo_en; journalctl -u ao_vivo_en -n 30 --no-pager"
+
+      - name: Ensure venv_en and install Python deps
+        if: github.event.inputs.modo != 'status'
+        run: |
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 bash << 'ENDSSH'
+            set -e
+            if [ ! -d /root/venv_en ]; then
+              python3 -m venv /root/venv_en
+              echo "✅ venv_en criado"
+            else
+              echo "✅ venv_en já existe"
+            fi
+            /root/venv_en/bin/pip install --upgrade pip --quiet
+            /root/venv_en/bin/pip install --quiet \
+              google-genai \
+              google-api-python-client \
+              google-auth \
+              google-auth-oauthlib \
+              pytz \
+              edge-tts \
+              pillow \
+              numpy
+            echo "✅ Dependências instaladas no venv_en"
+            /root/venv_en/bin/python3 -c "from google import genai; print('✅ google-genai OK')"
+          ENDSSH
+
+      - name: Deploy ao_vivo_en.py e service file
+        if: github.event.inputs.modo != 'status'
         run: |
           scp -i ~/.ssh/vps_key -o StrictHostKeyChecking=no \
             ao_vivo_en/ao_vivo_en.py \
             root@169.58.220.233:/root/ao_vivo_en/ao_vivo_en.py
+          scp -i ~/.ssh/vps_key -o StrictHostKeyChecking=no \
+            ao_vivo_en/ao_vivo_en.service \
+            root@169.58.220.233:/etc/systemd/system/ao_vivo_en.service
 
-      - name: Restart or check service
+      - name: Reiniciar serviço
+        if: github.event.inputs.modo != 'status'
         run: |
-          MODO="${{ github.event.inputs.modo }}"
-          if [ "$MODO" = "status" ]; then
-            ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 \
-              "systemctl is-active ao_vivo_en; journalctl -u ao_vivo_en -n 30 --no-pager"
-          else
-            ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 \
-              "systemctl restart ao_vivo_en && sleep 5 && systemctl is-active ao_vivo_en && echo DEPLOY_OK"
-          fi
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 "
+            systemctl daemon-reload
+            systemctl restart ao_vivo_en
+            sleep 20
+            STATUS=\$(systemctl is-active ao_vivo_en)
+            echo \"Service status: \$STATUS\"
+            journalctl -u ao_vivo_en -n 25 --no-pager
+            if [ \"\$STATUS\" = 'active' ] || [ \"\$STATUS\" = 'activating' ]; then
+              echo DEPLOY_OK
+            else
+              echo DEPLOY_FAILED
+              exit 1
+            fi
+          "
 
       - name: Remove temporary SSH key
         if: always()

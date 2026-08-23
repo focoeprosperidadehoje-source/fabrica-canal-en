@@ -43,8 +43,13 @@ jobs:
           ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 bash << 'ENDSSH'
             set -e
             export DEBIAN_FRONTEND=noninteractive
-            apt-get update -qq
-            apt-get install -y python3.12-venv python3-pip -qq 2>/dev/null || true
+            if ! dpkg -l python3.12-venv 2>/dev/null | grep -q "^ii"; then
+              for i in 1 2 3 4 5; do
+                apt-get update -qq && apt-get install -y python3.12-venv python3-pip -qq 2>/dev/null && break
+                echo "apt tentativa $i falhou, aguardando 15s..."
+                sleep 15
+              done
+            fi
             systemctl stop ao_vivo_en || true
             rm -rf /root/venv_en
             python3 -m venv /root/venv_en

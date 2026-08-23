@@ -269,14 +269,19 @@ def criar_slideshow(imagens: list[Path], saida: Path, overlay: Path | None = Non
             str(tmp_final),
         ]
         print("  Blending particles...", flush=True)
-        result = subprocess.run(cmd_blend, capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            print(f"  [WARN] Blend failed — using base without particles: {result.stderr[-200:]}")
+        try:
+            result = subprocess.run(cmd_blend, capture_output=True, text=True, timeout=600)
+            if result.returncode != 0:
+                print(f"  [WARN] Blend failed — using base without particles: {result.stderr[-200:]}")
+                tmp_final.unlink(missing_ok=True)
+                tmp_base.rename(saida)
+            else:
+                tmp_base.unlink(missing_ok=True)
+                tmp_final.rename(saida)
+        except subprocess.TimeoutExpired:
+            print("  [WARN] Blend timeout — using base without particles")
             tmp_final.unlink(missing_ok=True)
             tmp_base.rename(saida)
-        else:
-            tmp_base.unlink(missing_ok=True)
-            tmp_final.rename(saida)
     else:
         tmp_base.rename(saida)
 

@@ -45,7 +45,9 @@ jobs:
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -qq
             apt-get install -y python3.12-venv python3-pip -qq 2>/dev/null || true
-            python3 -m venv --clear /root/venv_en
+            systemctl stop ao_vivo_en || true
+            rm -rf /root/venv_en
+            python3 -m venv /root/venv_en
             echo "✅ venv_en recriado"
             /root/venv_en/bin/pip install --upgrade pip --quiet
             /root/venv_en/bin/pip install --quiet \

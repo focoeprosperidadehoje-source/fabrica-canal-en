@@ -22,6 +22,8 @@ import subprocess
 import asyncio
 import re
 import tempfile
+import urllib.request
+import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
 from io import BytesIO
@@ -764,6 +766,7 @@ def _publicar_apos_golive(yt, bid: str, espera_seg: int = 60, timeout_seg: int =
         ).execute()
         log.info(f"Broadcast {bid} now PUBLIC")
         _aplicar_thumbnail(yt, bid)
+        _ativar_transmissao_dupla(yt, bid)
     except Exception as e:
         log.error(f"publicar: failed to make {bid} public: {e}")
 
@@ -866,6 +869,43 @@ def _aplicar_thumbnail(yt, bid: str):
         os.remove(tmp)
     except Exception as e:
         log.warning(f"thumbnail EN: {e}")
+
+
+def _ativar_transmissao_dupla(yt, bid: str):
+    """Activates dual streaming (MULTI_ASPECT_MODE_CROP) via YouTube's internal API.
+    YouTube automatically generates the 9:16 version from the horizontal stream."""
+    try:
+        items = yt.liveBroadcasts().list(part="snippet", id=bid).execute().get("items", [])
+        if not items:
+            log.warning(f"[DUPLA] Broadcast {bid} not found")
+            return
+        video_id = items[0]["snippet"].get("videoId", "") or bid
+        if not video_id:
+            log.warning(f"[DUPLA] videoId not found for broadcast {bid}")
+            return
+        creds = yt._http.credentials
+        token = getattr(creds, "token", None)
+        if not token:
+            log.warning("[DUPLA] OAuth token not available for dual streaming")
+            return
+        payload = json.dumps({
+            "encryptedVideoId": video_id,
+            "multiAspectCreatorSettings": {"mode": "MULTI_ASPECT_MODE_CROP"},
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            "https://www.youtube.com/youtubei/v1/video_manager/metadata_update",
+            data=payload,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            status = resp.status
+        if status == 200:
+            log.info(f"[DUPLA] Dual streaming activated: broadcast {bid} → video {video_id}")
+        else:
+            log.warning(f"[DUPLA] Unexpected response {status} activating dual streaming")
+    except Exception as e:
+        log.warning(f"[DUPLA] Error activating dual streaming: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════

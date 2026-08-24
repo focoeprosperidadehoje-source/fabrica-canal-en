@@ -50,8 +50,12 @@ jobs:
               done
             fi
             systemctl stop ao_vivo_en || true
-            sleep 3
-            rm -rf /root/venv_en
+            sleep 5
+            kill -9 $(pgrep -f ao_vivo_en) 2>/dev/null || true
+            sleep 2
+            find /root/venv_en -type f -delete 2>/dev/null || true
+            find /root/venv_en -type d -empty -delete 2>/dev/null || true
+            rm -rf /root/venv_en 2>/dev/null || true
             python3 -m venv /root/venv_en
             /root/venv_en/bin/pip install --upgrade pip --quiet
             /root/venv_en/bin/pip install --quiet \

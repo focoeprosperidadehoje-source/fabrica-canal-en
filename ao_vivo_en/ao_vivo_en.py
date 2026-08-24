@@ -124,7 +124,7 @@ BLOCOS_MINIMOS       = 1
 VOZ          = "en-US-JennyNeural"
 VOZ_RATE     = "-30%"
 VOZ_PITCH    = "-8Hz"
-MODELOS_LIVE = ["gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+MODELOS_LIVE = ["gemini-2.5-flash-lite", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
 
 CHAVES_CONTEUDO = [c for c in [
     os.environ.get("GEMINI_KEY_LIVE_CONTENT_1_EN", ""),
@@ -1363,7 +1363,7 @@ def _gerar_resposta_chat_en(autor: str, texto: str) -> str | None:
         try:
             from google.genai import Client as GClient
             gc = GClient(api_key=chave, http_options={'api_version': 'v1'})
-            return gc.models.generate_content(model='gemini-1.5-flash', contents=prompt).text.strip()[:200]
+            return gc.models.generate_content(model='gemini-2.5-flash-lite', contents=prompt).text.strip()[:200]
         except Exception as e:
             if "429" in str(e) and chave != chaves[-1]:
                 continue

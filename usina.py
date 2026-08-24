@@ -23,11 +23,11 @@ def obter_cascata_de_modelos():
         lite_models = [m.name for m in modelos_disponiveis if 'generateContent' in m.supported_generation_methods and 'flash' in m.name and ('lite' in m.name or '8b' in m.name)]
         # Flash regular = fallback de último recurso (cota restrita ~20 RPD)
         flash_models = [m.name for m in modelos_disponiveis if 'generateContent' in m.supported_generation_methods and 'flash' in m.name and 'lite' not in m.name and '8b' not in m.name]
-        melhor_lite = sorted(lite_models, reverse=True)[0] if lite_models else 'gemini-1.5-flash'
+        melhor_lite = sorted(lite_models, reverse=True)[0] if lite_models else 'gemini-2.5-flash-lite'
         melhor_flash = sorted(flash_models, reverse=True)[0] if flash_models else 'gemini-2.5-flash'
         return [melhor_lite, melhor_lite, melhor_lite, melhor_lite, melhor_flash]
     except:
-        return ['gemini-1.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']
+        return ['gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash']
 
 modelos_cascata = obter_cascata_de_modelos()
 

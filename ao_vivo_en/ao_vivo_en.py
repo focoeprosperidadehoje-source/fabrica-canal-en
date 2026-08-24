@@ -1182,6 +1182,7 @@ def loop_transmissor():
             ciclo_start     = time.time()
             ultimo_check_bc = time.time()
             ultimo_suplica  = ciclo_start - (SUPLICA_INTERVAL - 5 * 60)
+            ultimo_refresh_rtmp = ciclo_start  # FFmpeg restart a cada 4h para prevenir degradação RTMP
 
             try:
                 while not _ev_parar.is_set():
@@ -1198,6 +1199,18 @@ def loop_transmissor():
                                 blocos_atuais, rot_idx_h, ROLLING_INICIAIS)
                             buf_h = elapsed + buf_nova
                         proc_h = _iniciar_proc_playlist(playlist_h, STREAM_KEY_H, "H")
+
+                    # Refresh periódico RTMP a cada 4h: previne degradação de sinal pelo YouTube
+                    if (time.time() - ultimo_refresh_rtmp) >= 4 * 3600:
+                        log.info("Periodic RTMP refresh EN: restarting FFmpeg H to maintain Excellent signal")
+                        _matar_proc(proc_h, "H")
+                        blocos_atuais = listar_blocos()
+                        if blocos_atuais:
+                            playlist_h, rot_idx_h, buf_nova = _construir_playlist_rolling(
+                                blocos_atuais, rot_idx_h, ROLLING_INICIAIS)
+                            buf_h = elapsed + buf_nova
+                        proc_h = _iniciar_proc_playlist(playlist_h, STREAM_KEY_H, "H")
+                        ultimo_refresh_rtmp = time.time()
 
                     if not _ev_suplica_gerar.is_set() and (time.time() - ultimo_suplica) >= SUPLICA_INTERVAL:
                         sups_prontas = len(list(DIR_SUPLICAS.glob("suplica_*_h.mp4")))

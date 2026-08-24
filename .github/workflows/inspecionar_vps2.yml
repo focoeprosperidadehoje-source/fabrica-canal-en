@@ -1,0 +1,69 @@
+name: Inspecionar VPS2 (EN+PL)
+on:
+  workflow_dispatch:
+jobs:
+  inspecionar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configurar SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY_VPS_EN }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/vps_key
+          chmod 600 ~/.ssh/vps_key
+          ssh-keyscan -H 169.58.220.233 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Inspecionar EN e PL
+        run: |
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 bash << 'ENDSSH'
+          echo "========== EN BLOCOS =========="
+          ls -lht /root/ao_vivo_en/blocos/bloco_*_h.mp4 2>/dev/null | head -15 || echo "(nenhum)"
+          echo ""
+          echo "=== EN VIDEOS_BASE ==="
+          ls /root/ao_vivo_en/videos_base/*.mp4 2>/dev/null | wc -l | xargs echo "count:"
+          ls /root/ao_vivo_en/videos_base/*.mp4 2>/dev/null | head -5 || echo "(nenhum)"
+          echo ""
+          echo "=== EN BLOCO MAIS NOVO — bitrate ==="
+          NEWEST=$(ls -t /root/ao_vivo_en/blocos/bloco_*_h.mp4 2>/dev/null | head -1)
+          if [ -n "$NEWEST" ]; then
+            echo "arquivo: $NEWEST"
+            ffprobe -v quiet -select_streams v:0 -show_entries stream=bit_rate -of csv=p=0 "$NEWEST" | xargs echo "bitrate bps:"
+          else
+            echo "sem blocos"
+          fi
+          echo ""
+          echo "========== PL BLOCOS =========="
+          ls -lht /root/ao_vivo_pl/blocos/bloco_*_h.mp4 2>/dev/null | head -15 || echo "(nenhum)"
+          echo ""
+          echo "=== PL VIDEOS_BASE ==="
+          ls /root/ao_vivo_pl/videos_base/*.mp4 2>/dev/null | wc -l | xargs echo "count:"
+          ls /root/ao_vivo_pl/videos_base/*.mp4 2>/dev/null | head -5 || echo "(nenhum)"
+          echo ""
+          echo "=== PL BLOCO MAIS NOVO — bitrate ==="
+          NEWEST=$(ls -t /root/ao_vivo_pl/blocos/bloco_*_h.mp4 2>/dev/null | head -1)
+          if [ -n "$NEWEST" ]; then
+            echo "arquivo: $NEWEST"
+            ffprobe -v quiet -select_streams v:0 -show_entries stream=bit_rate -of csv=p=0 "$NEWEST" | xargs echo "bitrate bps:"
+          else
+            echo "sem blocos"
+          fi
+          echo ""
+          echo "=== PL — frames com conteúdo real (sample frame) ==="
+          NEWEST=$(ls -t /root/ao_vivo_pl/blocos/bloco_*_h.mp4 2>/dev/null | head -1)
+          if [ -n "$NEWEST" ]; then
+            ffprobe -v quiet -select_streams v:0 -show_entries stream=avg_frame_rate,codec_name,width,height -of csv=p=0 "$NEWEST" | xargs echo "stream info:"
+          fi
+          echo ""
+          echo "=== CONTAGEM TOTAL ==="
+          echo "EN blocos H: $(ls /root/ao_vivo_en/blocos/bloco_*_h.mp4 2>/dev/null | wc -l)"
+          echo "PL blocos H: $(ls /root/ao_vivo_pl/blocos/bloco_*_h.mp4 2>/dev/null | wc -l)"
+          echo "EN audio pendente: $(ls /root/ao_vivo_en/blocos/audio_*.mp3 2>/dev/null | wc -l)"
+          echo "PL audio pendente: $(ls /root/ao_vivo_pl/blocos/audio_*.mp3 2>/dev/null | wc -l)"
+          echo "EN videos_base: $(ls /root/ao_vivo_en/videos_base/*.mp4 2>/dev/null | wc -l)"
+          echo "PL videos_base: $(ls /root/ao_vivo_pl/videos_base/*.mp4 2>/dev/null | wc -l)"
+          ENDSSH
+
+      - name: Limpar chave
+        if: always()
+        run: rm -f ~/.ssh/vps_key

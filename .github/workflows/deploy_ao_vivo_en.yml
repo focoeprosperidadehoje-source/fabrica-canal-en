@@ -34,8 +34,14 @@ jobs:
       - name: Status do serviço (modo status)
         if: github.event.inputs.modo == 'status'
         run: |
-          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 \
-            "systemctl is-active ao_vivo_en; journalctl -u ao_vivo_en -n 30 --no-pager"
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 "
+            systemctl is-active ao_vivo_en
+            journalctl -u ao_vivo_en -n 20 --no-pager
+            echo '--- FFMPEG SPEED ---'
+            tail -c 2000 /root/ao_vivo_en/ffmpeg_h.log 2>/dev/null | tr '\r' '\n' | grep -E 'speed=|fps=' | tail -5 || echo 'sem dados'
+            echo '--- BLOCOS ---'
+            ls /root/ao_vivo_en/blocos/*.mp4 2>/dev/null | wc -l || echo '0 blocos'
+          "
 
       - name: Rebuild venv_en (modo rebuild_deps apenas)
         if: github.event.inputs.modo == 'rebuild_deps'

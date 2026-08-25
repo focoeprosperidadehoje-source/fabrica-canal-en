@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       modo:
-        description: 'Mode: deploy | status | rebuild_deps'
+        description: 'Mode: deploy | status | rebuild_deps | cleanup_blocos'
         default: 'deploy'
         required: true
 
@@ -30,6 +30,25 @@ jobs:
           printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/vps_key
           chmod 600 ~/.ssh/vps_key
           ssh-keyscan -H 169.58.220.233 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Limpeza de blocos defeituosos (modo cleanup_blocos)
+        if: github.event.inputs.modo == 'cleanup_blocos'
+        run: |
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 "
+            echo '--- ANTES ---'
+            ls /root/ao_vivo_en/blocos/*.mp4 2>/dev/null | wc -l
+            ls /root/ao_vivo_en/videos_base/
+            echo '--- REMOVENDO blocos 20260822 e particulas ---'
+            rm -fv /root/ao_vivo_en/blocos/bloco_20260822_*.mp4
+            rm -fv /root/ao_vivo_en/videos_base/_particulas_loop_1280x720.mp4
+            echo '--- REINICIANDO ao_vivo_en ---'
+            systemctl restart ao_vivo_en
+            sleep 10
+            systemctl is-active ao_vivo_en
+            echo '--- APOS ---'
+            ls /root/ao_vivo_en/blocos/*.mp4 2>/dev/null | wc -l
+            journalctl -u ao_vivo_en -n 15 --no-pager
+          "
 
       - name: Status do serviço (modo status)
         if: github.event.inputs.modo == 'status'

@@ -333,7 +333,7 @@ ABSOLUTE RULES:
 - Between 2600 and 3000 words
 """
 
-    modelos = ["gemini-2.5-flash"] if so_full else MODELOS_FULL
+    modelos = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"] if so_full else MODELOS_FULL
     texto   = _chamar_gemini(prompt, modelos, max_tokens=8192)
     texto   = re.sub(r'\*+', '', texto)
     texto   = re.sub(r'#{1,6}\s+', '', texto)

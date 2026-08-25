@@ -38,7 +38,7 @@ jobs:
             systemctl is-active ao_vivo_en
             journalctl -u ao_vivo_en -n 20 --no-pager
             echo '--- FFMPEG SPEED ---'
-            tail -c 2000 /root/ao_vivo_en/ffmpeg_h.log 2>/dev/null | tr '\r' '\n' | grep -E 'speed=|fps=' | tail -5 || echo 'sem dados'
+            tail -c 2000 /root/ao_vivo_en/ffmpeg_h.log 2>/dev/null | tr '\r' '\n' | grep -E 'speed=|fps=' | sed 's/speed= */speed=/g' | tail -5 || echo 'sem dados'
             echo '--- BLOCOS ---'
             ls /root/ao_vivo_en/blocos/*.mp4 2>/dev/null | wc -l || echo '0 blocos'
           "

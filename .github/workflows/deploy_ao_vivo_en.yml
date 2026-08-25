@@ -1,14 +1,10 @@
 name: 🚀 Deploy ao vivo EN
 
 on:
-  push:
-    paths:
-      - 'ao_vivo_en/ao_vivo_en.py'
-      - 'ao_vivo_en/ao_vivo_en.service'
   workflow_dispatch:
     inputs:
       modo:
-        description: 'Mode: deploy | status | rebuild_deps | cleanup_blocos'
+        description: 'Mode: deploy | status | rebuild_deps | cleanup_blocos | log'
         default: 'deploy'
         required: true
 

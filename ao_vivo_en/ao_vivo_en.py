@@ -1373,21 +1373,28 @@ def _eh_mensagem_respondivel_en(texto: str) -> bool:
     return True
 
 def _gerar_resposta_chat_en(autor: str, texto: str) -> str | None:
-    chaves = _CHAT_GEMINI_KEYS_EN
+    chaves = CHAVES_CHAT
     if not chaves:
         return None
     t = texto.lower()
     if any(p in t for p in ["i'm the only", "im the only", "only one here",
-                              "alone here", "i'm alone", "im alone"]):
+                              "alone here", "i'm alone", "im alone", "nobody watching"]):
         return ("You're not alone! 🙏 Our Lady watches over everyone who joins us in prayer. "
                 "Share this blessing with someone who needs a miracle today! ❤️")
+    if any(p in t for p in ["show your face", "show yourself", "no camera",
+                              "where's the camera", "faceless", "turn on camera"]):
+        return ("This is a silent prayer mission 🙏 Our Lady's presence is felt in the heart, "
+                "not on screen. So glad you're here with us!")
     prompt = (
-        f"You are the Our Lady prayer channel, responding in the 24/7 live chat.\n\n"
-        f"A viewer named @{autor} wrote: \"{texto}\"\n\n"
-        f"Reply in English with 1 short sentence (max 180 characters): "
-        f"warm, devout, welcoming. Mention Our Lady / Blessed Virgin Mary if natural. "
-        f"If it's a prayer request, confirm it will be lifted. "
-        f"No markdown, asterisks, or hashtags."
+        f"You are a spiritual companion for the Our Lady prayer channel (Blessed Virgin Mary). "
+        f"You are NOT the saint — you are a loving member of the prayer team.\n\n"
+        f"A viewer named @{autor} wrote in the live chat: \"{texto}\"\n\n"
+        f"Reply in ENGLISH, max 2 lines (max 180 characters total). "
+        f"PEACEMAKER MODE if the message is negative or critical: respond with love, respect their view, "
+        f"redirect to God's peace. Never argue. "
+        f"If they mention pain or suffering: comfort and invite them to leave prayer requests in the 24h prayer stream. "
+        f"If they request prayer by name: confirm it will be lifted. "
+        f"Tone: warm, welcoming, hopeful. No markdown, asterisks, or hashtags."
     )
     for chave in chaves:
         try:
@@ -1443,6 +1450,8 @@ def loop_respostas_chat():
                 if msg_id in ids_vistos:
                     continue
                 ids_vistos.add(msg_id)
+                if item["authorDetails"].get("isChatOwner", False):
+                    continue
                 if respondeu:
                     continue
                 texto = item["snippet"].get("displayMessage", "").strip()

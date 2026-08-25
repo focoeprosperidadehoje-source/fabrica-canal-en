@@ -1201,6 +1201,8 @@ def loop_transmissor():
             playlist_h, rot_idx_h, buf_h = _construir_playlist_rolling(
                 blocos, rot_idx_h, ROLLING_INICIAIS)
             proc_h = _iniciar_proc_playlist(playlist_h, STREAM_KEY_H, "H")
+            _proc_h_start = time.time()
+            _falhas_rtmp  = 0
 
             ciclo_start     = time.time()
             ultimo_check_bc = time.time()
@@ -1216,14 +1218,32 @@ def loop_transmissor():
 
                     if proc_h.poll() is not None:
                         rc = proc_h.returncode
-                        log.warning(f"FFmpeg H EN stopped (rc={rc}) — rebuilding and restarting")
-                        time.sleep(5)  # prevent rapid RTMP reconnect; YouTube needs ~3s to register disconnect
+                        uptime = time.time() - _proc_h_start
+                        if uptime < 30:
+                            _falhas_rtmp += 1
+                            espera = min(30 * (2 ** (_falhas_rtmp - 1)), 120)
+                            log.warning(f"FFmpeg H EN stopped after {uptime:.0f}s (rc={rc}) — RTMP failure #{_falhas_rtmp}, waiting {espera}s")
+                            _ev_parar.wait(timeout=espera)
+                            if _falhas_rtmp >= 4 and yt and bid_h:
+                                log.warning("FFmpeg H EN: 4 consecutive RTMP failures — forcing new broadcast")
+                                _finalizar_broadcast(yt, bid_h)
+                                bid_h = criar_broadcast_permanente(yt)
+                                with _lock:
+                                    _estado["live_id_h"] = bid_h
+                                threading.Thread(target=_publicar_apos_golive, args=(yt, bid_h),
+                                                 name="PublicaLiveEN", daemon=True).start()
+                                _falhas_rtmp = 0
+                        else:
+                            _falhas_rtmp = 0
+                            log.warning(f"FFmpeg H EN stopped (rc={rc}) — rebuilding and restarting")
+                            _ev_parar.wait(timeout=5)
                         blocos_atuais = listar_blocos()
                         if blocos_atuais:
                             playlist_h, rot_idx_h, buf_nova = _construir_playlist_rolling(
                                 blocos_atuais, rot_idx_h, ROLLING_INICIAIS)
                             buf_h = elapsed + buf_nova
                         proc_h = _iniciar_proc_playlist(playlist_h, STREAM_KEY_H, "H")
+                        _proc_h_start = time.time()
 
                     # Refresh periódico RTMP a cada 2h: previne degradação de sinal pelo YouTube
                     if (time.time() - ultimo_refresh_rtmp) >= 12 * 3600:
@@ -1237,6 +1257,8 @@ def loop_transmissor():
                             buf_h = elapsed + buf_nova
                         proc_h = _iniciar_proc_playlist(playlist_h, STREAM_KEY_H, "H")
                         ultimo_refresh_rtmp = time.time()
+                        _proc_h_start = time.time()
+                        _falhas_rtmp  = 0
 
                     if not _ev_suplica_gerar.is_set() and (time.time() - ultimo_suplica) >= SUPLICA_INTERVAL:
                         sups_prontas = len(list(DIR_SUPLICAS.glob("suplica_*_h.mp4")))

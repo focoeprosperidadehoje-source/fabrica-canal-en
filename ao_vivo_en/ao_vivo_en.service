@@ -4,10 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
+User=root
 WorkingDirectory=/root/ao_vivo_en
 ExecStart=/root/venv_en/bin/python3 /root/ao_vivo_en/ao_vivo_en.py
 Restart=always
-RestartSec=10
+RestartSec=30
 StandardOutput=journal
 StandardError=journal
 

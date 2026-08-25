@@ -1078,6 +1078,7 @@ def _montar_bloco_h(audio: Path) -> Path:
 
     saida_tmp = saida.with_suffix(".tmp.mp4")
     cmd = [
+        "ionice", "-c3",
         "nice", "-n", "19",
         "ffmpeg", "-y",
         "-f", "concat", "-safe", "0", "-i", str(concat_file),

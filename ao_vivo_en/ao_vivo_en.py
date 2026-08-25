@@ -932,7 +932,21 @@ def _iniciar_proc_playlist(playlist: Path, sk: str, nome: str) -> subprocess.Pop
         "-f", "flv", f"{INGEST_URL}/{sk}",
     ]
     log_ffmpeg = BASE_DIR / f"ffmpeg_{nome.lower()}.log"
-    stderr_f   = open(log_ffmpeg, "wb", buffering=0)
+    # Log tail of previous FFmpeg run before overwriting (preserves crash reason)
+    if log_ffmpeg.exists():
+        try:
+            sz = log_ffmpeg.stat().st_size
+            with open(log_ffmpeg, 'rb') as _f:
+                _f.seek(max(0, sz - 600))
+                _tail = _f.read().decode('utf-8', errors='replace').replace('\r', '\n')
+            if _tail.strip():
+                log.info(f"FFmpeg {nome} previous tail:\n{_tail.strip()[-500:]}")
+        except Exception:
+            pass
+    # Append mode so crash logs accumulate; rotate at 20MB
+    if log_ffmpeg.exists() and log_ffmpeg.stat().st_size > 20 * 1024 * 1024:
+        log_ffmpeg.unlink()
+    stderr_f = open(log_ffmpeg, "ab", buffering=0)
     p = subprocess.Popen(cmd, cwd=str(BASE_DIR), stdout=subprocess.DEVNULL, stderr=stderr_f)
     p._stderr_f = stderr_f
     log.info(f"FFmpeg {nome} (playlist) PID {p.pid} → {log_ffmpeg.name}")
@@ -1196,6 +1210,7 @@ def loop_transmissor():
                     if proc_h.poll() is not None:
                         rc = proc_h.returncode
                         log.warning(f"FFmpeg H EN stopped (rc={rc}) — rebuilding and restarting")
+                        time.sleep(5)  # prevent rapid RTMP reconnect; YouTube needs ~3s to register disconnect
                         blocos_atuais = listar_blocos()
                         if blocos_atuais:
                             playlist_h, rot_idx_h, buf_nova = _construir_playlist_rolling(

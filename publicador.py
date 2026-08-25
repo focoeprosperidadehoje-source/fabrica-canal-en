@@ -319,7 +319,7 @@ for index, linha in enumerate(dados, start=2):
         capitulos = f"\n\n⏱️ Prayer Chapters:\n{format_time(0)} Beginning of the Prayer\n{format_time(duracao_audio * 0.33)} Supplication and Faith\n{format_time(duracao_audio * 0.66)} Surrender and Gratitude"
         if tem_extensao: capitulos += f"\n{format_time(duracao_audio)} Meditation and Deep Peace"
 
-        bloco_live = "\n\n🔴 COMING SOON — LIVE 24 HOURS\nSoon we will be broadcasting continuously 24 hours a day. Your supplications, prayer requests and the names of your loved ones will be mentioned in unceasing prayer. Activate the 🔔 bell to be among the first to join this moment of grace!"
+        bloco_live = "\n\n🔴 LIVE NOW — 24 HOURS WITH OUR LADY\nWe are broadcasting continuously 24 hours a day. Your supplications, prayer requests and the names of your loved ones are mentioned in unceasing prayer. Join us now! 👉 https://youtube.com/channel/UCOGQwey2JXGvL8cqZ9tmCoQ/live"
 
         try:
             tz_ny = pytz.timezone('America/New_York')

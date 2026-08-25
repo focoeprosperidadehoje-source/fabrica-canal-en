@@ -84,7 +84,7 @@ def _gerar_overlay_particulas(saida, largura=1920, altura=1080, duracao_s=20, fp
         if os.path.exists(tmp): os.remove(tmp)
         print(f"[WARN] Partículas: {e}"); return None
 
-_PARTICLES_PATH = _gerar_overlay_particulas(f"{PASTA_TEMP}/particles_loop.mp4")
+_PARTICLES_PATH = None  # disabled: blend=screen re-encode exceeds timeout on long videos
 
 # Shared asset folders
 ID_PASTA_JESUS = "1kSl8xFW9_4Q_03XKq1c2dunovvlo3urH"

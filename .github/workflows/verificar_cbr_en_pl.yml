@@ -1,0 +1,72 @@
+name: 🔍 Verificar blocos CBR — EN e PL (VPS2)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    name: ffprobe VPS2 — EN + PL
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Configurar SSH para VPS2
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY_VPS_EN }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/vps_key
+          chmod 600 ~/.ssh/vps_key
+          ssh-keyscan -H 169.58.220.233 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Verificar bitrate real dos blocos EN e PL
+        run: |
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 << 'REMOTE'
+          THRESHOLD=1800000
+
+          echo "=============================="
+          echo "CANAL EN — /root/ao_vivo_en/blocos/"
+          echo "=============================="
+          COUNT_EN=$(ls /root/ao_vivo_en/blocos/*.mp4 2>/dev/null | wc -l)
+          echo "Total de blocos EN: $COUNT_EN"
+          echo ""
+          ls -t /root/ao_vivo_en/blocos/*.mp4 2>/dev/null | head -8 | while read f; do
+            bitrate=$(ffprobe -v error -select_streams v:0 \
+              -show_entries stream=bit_rate \
+              -of csv=p=0 "$f" 2>/dev/null)
+            size=$(du -h "$f" | cut -f1)
+            date=$(stat -c %y "$f" | cut -d. -f1)
+            if [ -n "$bitrate" ] && [ "$bitrate" -ge 1800000 ] 2>/dev/null; then
+              status="✅ GO"
+            else
+              status="❌ NO-GO"
+            fi
+            echo "$status | $(basename $f) | ${bitrate:-N/A} bps | $size | $date"
+          done
+
+          echo ""
+          echo "=============================="
+          echo "CANAL PL — /root/ao_vivo_pl/blocos/"
+          echo "=============================="
+          COUNT_PL=$(ls /root/ao_vivo_pl/blocos/*.mp4 2>/dev/null | wc -l)
+          echo "Total de blocos PL: $COUNT_PL"
+          echo ""
+          ls -t /root/ao_vivo_pl/blocos/*.mp4 2>/dev/null | head -8 | while read f; do
+            bitrate=$(ffprobe -v error -select_streams v:0 \
+              -show_entries stream=bit_rate \
+              -of csv=p=0 "$f" 2>/dev/null)
+            size=$(du -h "$f" | cut -f1)
+            date=$(stat -c %y "$f" | cut -d. -f1)
+            if [ -n "$bitrate" ] && [ "$bitrate" -ge 1800000 ] 2>/dev/null; then
+              status="✅ GO"
+            else
+              status="❌ NO-GO"
+            fi
+            echo "$status | $(basename $f) | ${bitrate:-N/A} bps | $size | $date"
+          done
+
+          echo ""
+          echo "=============================="
+          echo "CRITÉRIO Phase 2: bitrate ≥ 1.800.000 bps em todos os blocos recentes"
+          echo "=============================="
+          REMOTE

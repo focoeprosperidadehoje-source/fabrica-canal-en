@@ -1184,12 +1184,23 @@ def loop_transmissor():
                 break
 
             bid_h = None
+            elapsed_adopted = 0.0
             if yt:
                 try:
                     _limpar_orfaos(yt)
                     bid_h = adotar_broadcast_ativo(yt)
                     if not bid_h:
                         bid_h = criar_broadcast_permanente(yt)
+                    else:
+                        try:
+                            r2 = yt.liveBroadcasts().list(part="snippet", id=bid_h).execute()
+                            actual = r2["items"][0]["snippet"].get("actualStartTime", "")
+                            if actual:
+                                t0 = datetime.fromisoformat(actual.replace("Z", "+00:00"))
+                                elapsed_adopted = (datetime.now(timezone.utc) - t0).total_seconds()
+                                log.info(f"Adopted broadcast has been live for {elapsed_adopted/3600:.1f}h — adjusting cycle clock")
+                        except Exception as _e:
+                            log.warning(f"elapsed_adopted check: {_e}")
                     with _lock:
                         _estado["live_id_h"] = bid_h
                     threading.Thread(target=_publicar_apos_golive, args=(yt, bid_h),
@@ -1204,7 +1215,7 @@ def loop_transmissor():
             _proc_h_start = time.time()
             _falhas_rtmp  = 0
 
-            ciclo_start     = time.time()
+            ciclo_start     = time.time() - elapsed_adopted
             ultimo_check_bc = time.time()
             ultimo_suplica  = ciclo_start - (SUPLICA_INTERVAL - 5 * 60)
             ultimo_refresh_rtmp = ciclo_start - 1800  # offset -30min vs PL: EN dispara 11.5h após start, PL dispara 12h → nunca simultaneamente

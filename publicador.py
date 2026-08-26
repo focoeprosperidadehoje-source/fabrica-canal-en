@@ -84,7 +84,7 @@ def _gerar_overlay_particulas(saida, largura=1920, altura=1080, duracao_s=20, fp
         if os.path.exists(tmp): os.remove(tmp)
         print(f"[WARN] Partículas: {e}"); return None
 
-_PARTICLES_PATH = None  # disabled: blend=screen re-encode exceeds timeout on long videos
+_PARTICLES_PATH = _gerar_overlay_particulas(f"{PASTA_TEMP}/particles_loop.mp4")
 
 # Shared asset folders
 ID_PASTA_JESUS = "1kSl8xFW9_4Q_03XKq1c2dunovvlo3urH"
@@ -266,21 +266,30 @@ for index, linha in enumerate(dados, start=2):
                 if not baralho_brolls_uso: baralho_brolls_uso = brolls_locais.copy(); random.shuffle(baralho_brolls_uso)
                 ativo = baralho_brolls_uso.pop() if brolls_locais else imgs_locais[0]
                 duracao_real = min(duracao_padrao, obter_duracao(ativo)) if ativo.endswith('.mp4') else duracao_padrao
-                subprocess.run(f'ffmpeg -y -i "{ativo}" -t {duracao_real} -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,colorchannelmixer=rr=0.6:gg=0.6:bb=0.6" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -r 24 -an "{arquivo_ts}"', shell=True, capture_output=True)
+                if _PARTICLES_PATH:
+                    subprocess.run(f'ffmpeg -y -i "{ativo}" -stream_loop -1 -i "{_PARTICLES_PATH}" -t {duracao_real} -filter_complex "[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,colorchannelmixer=rr=0.6:gg=0.6:bb=0.6[base];[base][1:v]blend=all_mode=screen:all_opacity=0.30[v]" -map "[v]" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -r 24 -an "{arquivo_ts}"', shell=True, capture_output=True)
+                else:
+                    subprocess.run(f'ffmpeg -y -i "{ativo}" -t {duracao_real} -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,colorchannelmixer=rr=0.6:gg=0.6:bb=0.6" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -r 24 -an "{arquivo_ts}"', shell=True, capture_output=True)
                 tempo_acumulado += duracao_real
             else:
                 if contador_chunk > 0 and brolls_locais and random.random() < 0.30:
                     if not baralho_brolls_uso: baralho_brolls_uso = brolls_locais.copy(); random.shuffle(baralho_brolls_uso)
                     ativo = baralho_brolls_uso.pop()
                     duracao_real = min(duracao_padrao, obter_duracao(ativo))
-                    subprocess.run(f'ffmpeg -y -i "{ativo}" -t {duracao_real} -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -r 24 -an "{arquivo_ts}"', shell=True, capture_output=True)
+                    if _PARTICLES_PATH:
+                        subprocess.run(f'ffmpeg -y -i "{ativo}" -stream_loop -1 -i "{_PARTICLES_PATH}" -t {duracao_real} -filter_complex "[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[base];[base][1:v]blend=all_mode=screen:all_opacity=0.30[v]" -map "[v]" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -r 24 -an "{arquivo_ts}"', shell=True, capture_output=True)
+                    else:
+                        subprocess.run(f'ffmpeg -y -i "{ativo}" -t {duracao_real} -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -r 24 -an "{arquivo_ts}"', shell=True, capture_output=True)
                     tempo_acumulado += duracao_real
                 else:
                     if not baralho_imgs_uso: baralho_imgs_uso = imgs_locais.copy(); random.shuffle(baralho_imgs_uso)
                     ativo = baralho_imgs_uso.pop()
                     efeito_zoom = random.choice(['in', 'out'])
                     zoom_cmd = "zoompan=z='1.0+0.0006*on':d=400:x='iw/2-(iw/zoom)/2':y='ih/2-(ih/zoom)/2':s=1920x1080:fps=24" if efeito_zoom == 'in' else "zoompan=z='1.15-0.0006*on':d=400:x='iw/2-(iw/zoom)/2':y='ih/2-(ih/zoom)/2':s=1920x1080:fps=24"
-                    subprocess.run(f'ffmpeg -y -loop 1 -framerate 24 -i "{ativo}" -t {duracao_padrao} -vf "scale=3840:2160:force_original_aspect_ratio=increase,crop=3840:2160,{zoom_cmd}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -an "{arquivo_ts}"', shell=True, capture_output=True)
+                    if _PARTICLES_PATH:
+                        subprocess.run(f'ffmpeg -y -loop 1 -framerate 24 -i "{ativo}" -stream_loop -1 -i "{_PARTICLES_PATH}" -t {duracao_padrao} -filter_complex "[0:v]scale=3840:2160:force_original_aspect_ratio=increase,crop=3840:2160,{zoom_cmd}[base];[base][1:v]blend=all_mode=screen:all_opacity=0.30[v]" -map "[v]" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -an "{arquivo_ts}"', shell=True, capture_output=True)
+                    else:
+                        subprocess.run(f'ffmpeg -y -loop 1 -framerate 24 -i "{ativo}" -t {duracao_padrao} -vf "scale=3840:2160:force_original_aspect_ratio=increase,crop=3840:2160,{zoom_cmd}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -an "{arquivo_ts}"', shell=True, capture_output=True)
                     tempo_acumulado += duracao_padrao
             lista_ts.append(arquivo_ts); contador_chunk += 1
 
@@ -291,18 +300,7 @@ for index, linha in enumerate(dados, start=2):
         video_mudo = f"{PASTA_TEMP}/mudo.mp4"
         subprocess.run(f'ffmpeg -y -f concat -safe 0 -i "{arquivo_concat}" -c copy "{video_mudo}"', shell=True, capture_output=True)
 
-        # Overlay de partículas douradas (blend=screen, opacidade 0.30)
-        if _PARTICLES_PATH:
-            video_mudo_p = f"{PASTA_TEMP}/mudo_p.mp4"
-            r_p = subprocess.run([
-                'ffmpeg', '-y', '-i', video_mudo,
-                '-stream_loop', '-1', '-i', _PARTICLES_PATH,
-                '-filter_complex', '[0:v][1:v]blend=all_mode=screen:all_opacity=0.30[v]',
-                '-map', '[v]', '-c:v', 'libx264', '-preset', 'ultrafast',
-                '-pix_fmt', 'yuv420p', '-an', video_mudo_p
-            ], capture_output=True)
-            if r_p.returncode == 0:
-                video_mudo = video_mudo_p
+        # Particles already integrated into each .ts segment (blend inside encoding)
 
         video_final = f"{PASTA_TEMP}/final.mp4"
         if sfx_local:

@@ -114,60 +114,66 @@ jobs:
             fi
           "
 
-      - name: Force VOD — finaliza broadcast atual e reinicia serviço (modo force_vod)
+      - name: Force VOD — prepara script Python local
         if: github.event.inputs.modo == 'force_vod'
         run: |
-          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 bash << 'ENDSSH'
-            echo "=== PARANDO ao_vivo_en ==="
-            systemctl stop ao_vivo_en || true
-            sleep 5
-            kill -9 $(pgrep -f ao_vivo_en.py) 2>/dev/null || true
-            echo "=== FINALIZANDO BROADCAST ATUAL (cria VOD) ==="
-            /root/venv_en/bin/python3 - << 'PYEOF'
-import json, sys
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
-with open('/root/ao_vivo_en/youtube_token.json') as f:
-    t = json.load(f)
-creds = Credentials(
-    token=t.get('access_token') or t.get('token'),
-    refresh_token=t.get('refresh_token'),
-    token_uri='https://oauth2.googleapis.com/token',
-    client_id=t.get('client_id'),
-    client_secret=t.get('client_secret')
-)
-if creds.expired and creds.refresh_token:
-    creds.refresh(Request())
-yt = build('youtube', 'v3', credentials=creds)
-resp = yt.liveBroadcasts().list(part='id,status', broadcastStatus='active', maxResults=5).execute()
-items = resp.get('items', [])
-if items:
-    bid = items[0]['id']
-    print(f'Finalizando broadcast: {bid}')
-    try:
-        yt.liveBroadcasts().transition(broadcastStatus='complete', id=bid, part='id,status').execute()
-        print(f'VOD criado: {bid}')
-    except Exception as e:
-        print(f'Erro transition: {e}')
-else:
-    print('Nenhum broadcast ativo encontrado.')
-PYEOF
-            echo "=== AGUARDANDO 30s PARA YOUTUBE PROCESSAR ==="
-            sleep 30
-            echo "=== REINICIANDO ao_vivo_en (novo ciclo) ==="
-            systemctl start ao_vivo_en
-            sleep 20
-            STATUS=$(systemctl is-active ao_vivo_en)
-            echo "Service status: $STATUS"
-            journalctl -u ao_vivo_en -n 25 --no-pager
-            if [ "$STATUS" = 'active' ] || [ "$STATUS" = 'activating' ]; then
-              echo FORCE_VOD_OK
+          cat > /tmp/finalize_en.py << 'PYEOF'
+          import json
+          from google.oauth2.credentials import Credentials
+          from google.auth.transport.requests import Request
+          from googleapiclient.discovery import build
+          with open('/root/ao_vivo_en/youtube_token.json') as f:
+              t = json.load(f)
+          creds = Credentials(
+              token=t.get('access_token') or t.get('token'),
+              refresh_token=t.get('refresh_token'),
+              token_uri='https://oauth2.googleapis.com/token',
+              client_id=t.get('client_id'),
+              client_secret=t.get('client_secret')
+          )
+          if creds.expired and creds.refresh_token:
+              creds.refresh(Request())
+          yt = build('youtube', 'v3', credentials=creds)
+          resp = yt.liveBroadcasts().list(part='id,status', broadcastStatus='active', maxResults=5).execute()
+          items = resp.get('items', [])
+          if items:
+              bid = items[0]['id']
+              print(f'Finalizando broadcast: {bid}')
+              try:
+                  yt.liveBroadcasts().transition(broadcastStatus='complete', id=bid, part='id,status').execute()
+                  print(f'VOD criado: {bid}')
+              except Exception as e:
+                  print(f'Erro transition: {e}')
+          else:
+              print('Nenhum broadcast ativo encontrado.')
+          PYEOF
+
+      - name: Force VOD — executa no VPS EN (modo force_vod)
+        if: github.event.inputs.modo == 'force_vod'
+        run: |
+          scp -i ~/.ssh/vps_key -o StrictHostKeyChecking=no /tmp/finalize_en.py root@169.58.220.233:/tmp/finalize_en.py
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 "
+            echo '=== PARANDO ao_vivo_en ===';
+            systemctl stop ao_vivo_en || true;
+            sleep 5;
+            kill -9 \$(pgrep -f ao_vivo_en.py) 2>/dev/null || true;
+            echo '=== FINALIZANDO BROADCAST ATUAL (cria VOD) ===';
+            /root/venv_en/bin/python3 /tmp/finalize_en.py;
+            echo '=== AGUARDANDO 30s PARA YOUTUBE PROCESSAR ===';
+            sleep 30;
+            echo '=== REINICIANDO ao_vivo_en (novo ciclo) ===';
+            systemctl start ao_vivo_en;
+            sleep 20;
+            STATUS=\$(systemctl is-active ao_vivo_en);
+            echo \"Service status: \$STATUS\";
+            journalctl -u ao_vivo_en -n 25 --no-pager;
+            if [ \"\$STATUS\" = 'active' ] || [ \"\$STATUS\" = 'activating' ]; then
+              echo FORCE_VOD_OK;
             else
-              echo FORCE_VOD_FAILED
-              exit 1
+              echo FORCE_VOD_FAILED;
+              exit 1;
             fi
-          ENDSSH
+          "
 
       - name: Remove temporary SSH key
         if: always()

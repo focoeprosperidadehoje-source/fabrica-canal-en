@@ -27,7 +27,7 @@ jobs:
           python-version: '3'
       - name: Cache ffmpeg
         id: cache-ffmpeg
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /usr/local/bin/ffmpeg
           key: ffmpeg-static-linux64-n7

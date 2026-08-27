@@ -1191,10 +1191,14 @@ def loop_transmissor():
                     bid_h = adotar_broadcast_ativo(yt)
                     if not bid_h:
                         for _tentativa_bc in range(5):
-                            bid_h = criar_broadcast_permanente(yt)
+                            try:
+                                bid_h = criar_broadcast_permanente(yt)
+                            except Exception as _ebc:
+                                log.warning(f"criar_broadcast EN: attempt {_tentativa_bc+1}/5 ERROR: {_ebc}")
+                                bid_h = None
                             if bid_h:
                                 break
-                            log.warning(f"criar_broadcast EN: attempt {_tentativa_bc+1}/5 failed — waiting 30s")
+                            log.warning(f"criar_broadcast EN: attempt {_tentativa_bc+1}/5 no ID — waiting 30s")
                             _ev_parar.wait(timeout=30)
                         if not bid_h:
                             log.error("criar_broadcast EN: all 5 attempts failed — watchdog will retry every 2min")
@@ -1315,7 +1319,11 @@ def loop_transmissor():
                         ultimo_check_bc = time.time()
                         if not bid_h:
                             log.warning("Watchdog EN: bid_h=None — trying to create broadcast now")
-                            bid_h = criar_broadcast_permanente(yt)
+                            try:
+                                bid_h = criar_broadcast_permanente(yt)
+                            except Exception as _ewdg:
+                                log.warning(f"Watchdog EN: criar_broadcast failed: {_ewdg}")
+                                bid_h = None
                             if bid_h:
                                 with _lock:
                                     _estado["live_id_h"] = bid_h
@@ -1335,11 +1343,16 @@ def loop_transmissor():
                             if st in ("complete", "revoked"):
                                 log.warning(f"Broadcast EN {bid_h} ended — creating new one")
                                 _finalizar_broadcast(yt, bid_h)
-                                bid_h = criar_broadcast_permanente(yt)
-                                with _lock:
-                                    _estado["live_id_h"] = bid_h
-                                threading.Thread(target=_publicar_apos_golive, args=(yt, bid_h),
-                                                 name="PublicaLiveEN", daemon=True).start()
+                                try:
+                                    bid_h = criar_broadcast_permanente(yt)
+                                except Exception as _erv:
+                                    log.warning(f"Watchdog EN (revoked): criar_broadcast failed: {_erv}")
+                                    bid_h = None
+                                if bid_h:
+                                    with _lock:
+                                        _estado["live_id_h"] = bid_h
+                                    threading.Thread(target=_publicar_apos_golive, args=(yt, bid_h),
+                                                     name="PublicaLiveEN", daemon=True).start()
 
                     _ev_parar.wait(timeout=10)
             finally:

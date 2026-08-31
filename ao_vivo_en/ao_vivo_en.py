@@ -197,6 +197,101 @@ MIN_BLOCO_BYTES = 10 * 1024 * 1024
 
 _stream_id_cache = {"id": None}
 
+# ── Thematic VOD playlists ───────────────────────────────────────────────
+PLAYLISTS_TEMATICAS_FILE = BASE_DIR / "playlists_tematicas.json"
+_NOMES_PLAYLIST_TEMATICA = {
+    0: "Our Lady — Protection & Spiritual Warfare",
+    1: "Our Lady — Liberation & Deliverance",
+    2: "Our Lady — Family Restoration",
+    3: "Our Lady — Providence & Open Doors",
+    4: "Our Lady — Healing & Mercy",
+    5: "Our Lady — The Sacred Mantle",
+    6: "Our Lady — Miracles & Gratitude",
+}
+_cache_playlists_tematicas: dict = {}
+
+
+def _garantir_playlists_tematicas(yt) -> dict:
+    global _cache_playlists_tematicas
+    if _cache_playlists_tematicas:
+        return _cache_playlists_tematicas
+    if PLAYLISTS_TEMATICAS_FILE.exists():
+        try:
+            cached = json.loads(PLAYLISTS_TEMATICAS_FILE.read_text())
+            if len(cached) == 7:
+                _cache_playlists_tematicas = cached
+                return cached
+        except Exception:
+            pass
+    existentes = {}
+    token = None
+    while True:
+        resp = yt.playlists().list(part="snippet", mine=True, maxResults=50, pageToken=token).execute()
+        for p in resp.get("items", []):
+            existentes[p["snippet"]["title"]] = p["id"]
+        token = resp.get("nextPageToken")
+        if not token:
+            break
+    ids = {}
+    for weekday, nome in _NOMES_PLAYLIST_TEMATICA.items():
+        if nome in existentes:
+            ids[str(weekday)] = existentes[nome]
+            log.info(f"Thematic playlist found: {nome} → {existentes[nome]}")
+        else:
+            try:
+                r = yt.playlists().insert(
+                    part="snippet,status",
+                    body={
+                        "snippet": {
+                            "title": nome,
+                            "description": f"Live prayers and VODs — {nome}",
+                            "defaultLanguage": "en",
+                        },
+                        "status": {"privacyStatus": "public"},
+                    }
+                ).execute()
+                ids[str(weekday)] = r["id"]
+                log.info(f"Thematic playlist CREATED: {nome} → {r['id']}")
+            except Exception as e:
+                log.warning(f"Create playlist '{nome}': {e}")
+    PLAYLISTS_TEMATICAS_FILE.write_text(json.dumps(ids))
+    _cache_playlists_tematicas = ids
+    return ids
+
+
+def _renomear_vod_e_classificar(bid: str):
+    time.sleep(180)
+    try:
+        yt2 = get_youtube()
+    except Exception as e:
+        log.warning(f"_rename_vod: get_youtube failed: {e}")
+        return
+    now = datetime.now(FUSO)
+    weekday = now.weekday()
+    titulo_base = re.sub(r"[🔴🟢🔵]|— Powerful Prayer|\s*LIVE", "", TITULOS_LIVE[weekday]).strip()
+    titulo_vod = f"{titulo_base} · {now.strftime('%m/%d %Ih%p').replace('AM','am').replace('PM','pm')}"[:100]
+    try:
+        yt2.videos().update(
+            part="snippet",
+            body={"id": bid, "snippet": {"title": titulo_vod, "categoryId": "22",
+                                          "description": DESCRICAO_LIVE}},
+        ).execute()
+        log.info(f"VOD {bid} renamed: {titulo_vod}")
+    except Exception as e:
+        log.warning(f"rename VOD {bid}: {e}")
+    try:
+        pls = _garantir_playlists_tematicas(yt2)
+        pid = pls.get(str(weekday))
+        if pid:
+            yt2.playlistItems().insert(
+                part="snippet",
+                body={"snippet": {"playlistId": pid,
+                                  "resourceId": {"kind": "youtube#video", "videoId": bid}}},
+            ).execute()
+            log.info(f"VOD {bid} → thematic playlist weekday={weekday}: {pid}")
+    except Exception as e:
+        log.warning(f"thematic playlist VOD {bid}: {e}")
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # LITURGICAL CALENDAR
@@ -725,6 +820,7 @@ def _finalizar_broadcast(yt, bid: str):
         log.info(f"Broadcast {bid} ended — VOD processing.")
     except Exception as e:
         log.warning(f"finalizar {bid}: transition ({e})")
+    threading.Thread(target=_renomear_vod_e_classificar, args=(bid,), daemon=True).start()
     if PLAYLIST_LIVES:
         for tentativa in range(1, 4):
             try:

@@ -1,0 +1,17 @@
+name: 🏷️ Renomear VODs históricos (EN)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  renomear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar dependências
+        run: pip install --quiet google-api-python-client google-auth pytz
+      - name: Renomear VODs
+        env:
+          YOUTUBE_TOKEN_EN: ${{ secrets.YOUTUBE_TOKEN_EN }}
+        run: python3 renomear_vods_historico.py

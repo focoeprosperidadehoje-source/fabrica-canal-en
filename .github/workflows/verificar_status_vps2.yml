@@ -1,0 +1,63 @@
+name: 🔍 Status VPS2 (EN+PL+IT)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configurar SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY_VPS_EN }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/vps_key
+          chmod 600 ~/.ssh/vps_key
+          ssh-keyscan -H 169.58.220.233 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Status VPS2 — carga + lives + discos
+        run: |
+          ssh -i ~/.ssh/vps_key -o StrictHostKeyChecking=no root@169.58.220.233 '
+            echo "=== LOAD AVERAGE ==="
+            uptime
+            echo ""
+            echo "=== CPU POR PROCESSO (top 10) ==="
+            ps aux --sort=-%cpu | head -12
+            echo ""
+            echo "=== FFMPEG PROCESSOS ==="
+            ps aux | grep -E "ffmpeg|ao_vivo" | grep -v grep || echo "(nenhum)"
+            echo ""
+            echo "=== SERVICES ==="
+            for svc in ao_vivo_en ao_vivo_pl ao_vivo_it; do
+              STATUS=$(systemctl is-active $svc 2>/dev/null || echo "not-found")
+              echo "  $svc: $STATUS"
+            done
+            echo ""
+            echo "=== SPEED DOS TRANSMISSORES ==="
+            for log in /root/ao_vivo_en/ffmpeg_h.log /root/ao_vivo_pl/ffmpeg_h.log /root/ao_vivo_it/ffmpeg_h.log; do
+              if [ -f "$log" ]; then
+                SPEED=$(tail -5 "$log" 2>/dev/null | grep -oP "speed=\S+" | tail -1)
+                BITRATE=$(tail -5 "$log" 2>/dev/null | grep -oP "bitrate=\S+" | tail -1)
+                echo "  $(basename $(dirname $log)): speed=$SPEED bitrate=$BITRATE"
+              else
+                echo "  $(dirname $log): log nao encontrado"
+              fi
+            done
+            echo ""
+            echo "=== DISCO ==="
+            df -h /root
+            echo ""
+            echo "=== BLOCOS POR CANAL ==="
+            for dir in /root/ao_vivo_en/blocos /root/ao_vivo_pl/blocos /root/ao_vivo_it/blocos; do
+              COUNT=$(ls "$dir"/*.mp4 2>/dev/null | wc -l)
+              echo "  $dir: $COUNT blocos"
+            done
+            echo ""
+            echo "=== VIDEOS BASE ==="
+            for dir in /root/ao_vivo_en/videos_base /root/ao_vivo_pl/videos_base /root/ao_vivo_it/videos_base; do
+              COUNT=$(ls "$dir"/*.mp4 2>/dev/null | wc -l)
+              echo "  $dir: $COUNT arquivos"
+            done
+          '

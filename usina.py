@@ -88,7 +88,6 @@ PILARES = {
     4: "Mercy and Physical Healing", 5: "The Mantle of Mary", 6: "Miracles and Gratitude"
 }
 GRADE_DIARIA = [
-    {"horario": "06:00", "personagem": "Jesus", "idioma": "EN", "foco": "Morning: Consecration, divine wisdom and guidance for the day.", "periodo": "this morning"},
     {"horario": "18:00", "personagem": "Maria", "idioma": "EN", "foco": "HYBRID: Address the pain of the Pillar of the Day and, at the end, transition into the evening prayer, asking for deep sleep, relief from anxiety and night protection.", "periodo": "tonight"}
 ]
 

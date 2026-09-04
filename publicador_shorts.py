@@ -199,7 +199,10 @@ for index, linha in enumerate(dados, start=2):
                     youtube.playlistItems().insert(part="snippet", body={"snippet": {"playlistId": pid, "resourceId": {"kind": "youtube#video", "videoId": video_id}}}).execute()
                 except Exception as e: print(f"   ⚠️ Warning: Could not add to playlist: {e}")
 
-                aba_shorts.update_cell(index, col_status, 'Published')
+                try:
+                    aba_shorts.update_cell(index, col_status, 'Published')
+                    print(f"   📋 Sheet updated. Row {index} complete.")
+                except Exception as e: print(f"   ⚠️ Failed to update sheet: {e}")
                 break
             except Exception as e:
                 print(f"   ❌ YouTube error (Attempt {tentativa+1}/3): {e}")

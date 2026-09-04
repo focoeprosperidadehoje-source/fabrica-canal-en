@@ -1,0 +1,89 @@
+name: Limpeza de Duplicatas EN
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'true=list only | false=delete real duplicates'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  limpeza:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: pip install google-api-python-client google-auth
+
+      - name: Create script
+        run: |
+          cat > /tmp/cleanup.py << 'PYEOF'
+          import os, json
+          from google.oauth2.credentials import Credentials
+          from google.auth.transport.requests import Request
+          from googleapiclient.discovery import build
+          from collections import defaultdict
+
+          dry_run = os.environ.get('DRY_RUN', 'true').lower() == 'true'
+          canal = os.environ.get('CANAL', 'CANAL')
+          print(f"=== CLEANUP {canal} {'(DRY RUN)' if dry_run else '(REAL)'} ===")
+
+          token_str = os.environ.get('YT_TOKEN', '').lstrip('﻿')
+          creds = Credentials.from_authorized_user_info(json.loads(token_str))
+          if creds.expired and creds.refresh_token:
+              creds.refresh(Request())
+          yt = build('youtube', 'v3', credentials=creds)
+
+          ch = yt.channels().list(part='contentDetails', mine=True).execute()
+          uploads_id = ch['items'][0]['contentDetails']['relatedPlaylists']['uploads']
+
+          videos = []
+          page_token = None
+          while True:
+              resp = yt.playlistItems().list(
+                  part='snippet', playlistId=uploads_id,
+                  maxResults=50, pageToken=page_token).execute()
+              for item in resp.get('items', []):
+                  s = item['snippet']
+                  videos.append({'id': s['resourceId']['videoId'],
+                      'title': s['title'], 'date': s['publishedAt']})
+              page_token = resp.get('nextPageToken')
+              if not page_token:
+                  break
+
+          print(f"Total: {len(videos)} videos")
+          by_title = defaultdict(list)
+          for v in videos:
+              by_title[v['title']].append(v)
+
+          total_dup = deleted = 0
+          for title, group in sorted(by_title.items()):
+              if len(group) <= 1:
+                  continue
+              group.sort(key=lambda x: x['date'])
+              total_dup += len(group) - 1
+              print(f"\nDUP ({len(group)}x): {title[:70]}")
+              print(f"  KEEP: {group[0]['id']} ({group[0]['date'][:10]})")
+              for v in group[1:]:
+                  print(f"  {'[DRY]' if dry_run else 'DEL'}: {v['id']} ({v['date'][:10]})")
+                  if not dry_run:
+                      try:
+                          yt.videos().delete(id=v['id']).execute()
+                          deleted += 1
+                      except Exception as e:
+                          print(f"  ERR: {e}")
+
+          print(f"\nDuplicates: {total_dup} | Deleted: {deleted}")
+          if dry_run:
+              print("Run with dry_run=false to actually delete.")
+          PYEOF
+
+      - name: Run cleanup EN
+        env:
+          YT_TOKEN: ${{ secrets.YOUTUBE_TOKEN_EN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          CANAL: EN
+        run: python3 /tmp/cleanup.py

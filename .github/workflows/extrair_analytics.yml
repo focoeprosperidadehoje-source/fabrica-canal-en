@@ -2,10 +2,15 @@ name: Extrair Analytics EN
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   analytics:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Install dependencies
         run: pip install google-api-python-client google-auth
 
@@ -20,7 +25,8 @@ jobs:
 
           canal = os.environ.get('CANAL', '?')
           token_str = os.environ.get('YT_TOKEN', '').lstrip('﻿')
-          print(f"=== ANALYTICS {canal} | {datetime.now().strftime('%Y-%m-%d')} ===")
+          hoje_str = datetime.now().strftime('%Y-%m-%d')
+          linhas = [f"# Analytics {canal} — {hoje_str}", ""]
           try:
               creds = Credentials.from_authorized_user_info(json.loads(token_str))
               if creds.expired and creds.refresh_token:
@@ -46,30 +52,55 @@ jobs:
               d28r = row(r_28d)
               d7r = row(r_7d)
               media_dia = d28r[0] / 60 / 28 if d28r[0] else 0
-              print(f"WATCH TIME ACUMULADO : {tot[0]/60:,.1f}h ({int(tot[0]):,} min)")
-              print(f"WATCH TIME 28 dias   : {d28r[0]/60:,.1f}h")
-              print(f"WATCH TIME 7 dias    : {d7r[0]/60:,.1f}h")
-              print(f"MEDIA DIARIA (28d)   : {media_dia:.1f}h/dia")
-              print(f"VIEWS TOTAL          : {int(tot[1]):,}")
-              print(f"VIEWS 28 dias        : {int(d28r[1]):,}")
-              print(f"DURACAO MEDIA        : {int(tot[2])}s ({int(tot[2])//60}min{int(tot[2])%60}s)")
               wt_atual = tot[0] / 60
               alvo = 4000
               restante = max(0, alvo - wt_atual)
+              pct = wt_atual / alvo * 100
+              linhas += [
+                  f"## Watch Time",
+                  f"- Acumulado (desde 2024): **{wt_atual:,.1f}h** ({int(tot[0]):,} min)",
+                  f"- Últimos 28 dias: **{d28r[0]/60:,.1f}h**",
+                  f"- Últimos 7 dias: **{d7r[0]/60:,.1f}h**",
+                  f"- Média diária (28d): **{media_dia:.1f}h/dia**",
+                  "",
+                  f"## Views",
+                  f"- Total: **{int(tot[1]):,}**",
+                  f"- Últimos 28 dias: **{int(d28r[1]):,}**",
+                  f"- Últimos 7 dias: **{int(d7r[1]):,}**",
+                  "",
+                  f"## Duração Média",
+                  f"- {int(tot[2])}s = {int(tot[2])//60}min{int(tot[2])%60}s",
+                  "",
+                  f"## Meta YPP 4.000h",
+                  f"- Progresso: **{wt_atual:.0f}h / {alvo}h ({pct:.1f}%)**",
+                  f"- Faltam: **{restante:.0f}h**",
+              ]
               if media_dia > 0:
                   dias_restantes = restante / media_dia
                   eta = (datetime.now() + timedelta(days=dias_restantes)).strftime('%Y-%m-%d')
-                  print(f"META 4000h: {wt_atual:.0f}h/{alvo}h | faltam {restante:.0f}h | ETA {eta}")
+                  linhas.append(f"- ETA estimada: **{eta}** (a {dias_restantes:.0f} dias)")
           except Exception as e:
-              print(f"ERRO: {e}")
+              linhas += [f"## ERRO", f"```", f"{e}", f"```"]
               if '403' in str(e) or 'forbidden' in str(e).lower():
-                  print("CAUSA: token sem escopo yt-analytics.readonly")
+                  linhas.append("Causa: token sem escopo yt-analytics.readonly")
               elif '401' in str(e):
-                  print("CAUSA: token expirado ou invalido")
+                  linhas.append("Causa: token expirado ou invalido")
+          print('\n'.join(linhas))
           PYEOF
 
-      - name: Run analytics EN
+      - name: Run analytics and save report
         env:
           YT_TOKEN: ${{ secrets.YOUTUBE_TOKEN_EN }}
           CANAL: EN
-        run: python3 /tmp/analytics.py
+        run: |
+          mkdir -p relatorios
+          python3 /tmp/analytics.py | tee relatorios/analytics_EN_$(date +%Y-%m-%d).md
+          cp relatorios/analytics_EN_$(date +%Y-%m-%d).md relatorios/analytics_EN_ultimo.md
+
+      - name: Commit and push report
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add relatorios/
+          git diff --staged --quiet || git commit -m "analytics: report EN $(date +%Y-%m-%d)"
+          git push

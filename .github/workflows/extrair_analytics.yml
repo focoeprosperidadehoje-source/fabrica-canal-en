@@ -1,0 +1,75 @@
+name: Extrair Analytics EN
+on:
+  workflow_dispatch:
+
+jobs:
+  analytics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: pip install google-api-python-client google-auth
+
+      - name: Create script
+        run: |
+          cat > /tmp/analytics.py << 'PYEOF'
+          import os, json
+          from datetime import datetime, timedelta
+          from google.oauth2.credentials import Credentials
+          from google.auth.transport.requests import Request
+          from googleapiclient.discovery import build
+
+          canal = os.environ.get('CANAL', '?')
+          token_str = os.environ.get('YT_TOKEN', '').lstrip('﻿')
+          print(f"=== ANALYTICS {canal} | {datetime.now().strftime('%Y-%m-%d')} ===")
+          try:
+              creds = Credentials.from_authorized_user_info(json.loads(token_str))
+              if creds.expired and creds.refresh_token:
+                  creds.refresh(Request())
+              ya = build('youtubeAnalytics', 'v2', credentials=creds)
+              hoje = datetime.now().strftime('%Y-%m-%d')
+              r_total = ya.reports().query(
+                  ids='channel==MINE', startDate='2024-01-01', endDate=hoje,
+                  metrics='estimatedMinutesWatched,views,averageViewDuration'
+              ).execute()
+              d28 = (datetime.now() - timedelta(days=28)).strftime('%Y-%m-%d')
+              r_28d = ya.reports().query(
+                  ids='channel==MINE', startDate=d28, endDate=hoje,
+                  metrics='estimatedMinutesWatched,views,averageViewDuration'
+              ).execute()
+              d7 = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+              r_7d = ya.reports().query(
+                  ids='channel==MINE', startDate=d7, endDate=hoje,
+                  metrics='estimatedMinutesWatched,views,averageViewDuration'
+              ).execute()
+              def row(r): return (r.get('rows') or [[0, 0, 0]])[0]
+              tot = row(r_total)
+              d28r = row(r_28d)
+              d7r = row(r_7d)
+              media_dia = d28r[0] / 60 / 28 if d28r[0] else 0
+              print(f"WATCH TIME ACUMULADO : {tot[0]/60:,.1f}h ({int(tot[0]):,} min)")
+              print(f"WATCH TIME 28 dias   : {d28r[0]/60:,.1f}h")
+              print(f"WATCH TIME 7 dias    : {d7r[0]/60:,.1f}h")
+              print(f"MEDIA DIARIA (28d)   : {media_dia:.1f}h/dia")
+              print(f"VIEWS TOTAL          : {int(tot[1]):,}")
+              print(f"VIEWS 28 dias        : {int(d28r[1]):,}")
+              print(f"DURACAO MEDIA        : {int(tot[2])}s ({int(tot[2])//60}min{int(tot[2])%60}s)")
+              wt_atual = tot[0] / 60
+              alvo = 4000
+              restante = max(0, alvo - wt_atual)
+              if media_dia > 0:
+                  dias_restantes = restante / media_dia
+                  eta = (datetime.now() + timedelta(days=dias_restantes)).strftime('%Y-%m-%d')
+                  print(f"META 4000h: {wt_atual:.0f}h/{alvo}h | faltam {restante:.0f}h | ETA {eta}")
+          except Exception as e:
+              print(f"ERRO: {e}")
+              if '403' in str(e) or 'forbidden' in str(e).lower():
+                  print("CAUSA: token sem escopo yt-analytics.readonly")
+              elif '401' in str(e):
+                  print("CAUSA: token expirado ou invalido")
+          PYEOF
+
+      - name: Run analytics EN
+        env:
+          YT_TOKEN: ${{ secrets.YOUTUBE_TOKEN_EN }}
+          CANAL: EN
+        run: python3 /tmp/analytics.py

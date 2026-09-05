@@ -814,12 +814,16 @@ def criar_broadcast_permanente(yt) -> str:
     return bid
 
 def _finalizar_broadcast(yt, bid: str):
-    try:
-        yt.liveBroadcasts().transition(broadcastStatus="complete", id=bid,
-                                       part="id,status").execute()
-        log.info(f"Broadcast {bid} ended — VOD processing.")
-    except Exception as e:
-        log.warning(f"finalizar {bid}: transition ({e})")
+    for _t in range(3):
+        try:
+            yt.liveBroadcasts().transition(broadcastStatus="complete", id=bid,
+                                           part="id,status").execute()
+            log.info(f"Broadcast {bid} ended — VOD processing.")
+            break
+        except Exception as e:
+            log.warning(f"finalizar {bid}: transition attempt {_t+1}/3: {e}")
+            if _t < 2:
+                time.sleep(15)
     threading.Thread(target=_renomear_vod_e_classificar, args=(bid,), daemon=True).start()
     if PLAYLIST_LIVES:
         for tentativa in range(1, 4):
@@ -1269,6 +1273,12 @@ def loop_transmissor():
         while not _ev_parar.is_set():
             ciclo += 1
             log.info(f"Transmitter EN — cycle {ciclo} of 12h")
+            if yt is None:
+                try:
+                    yt = get_youtube()
+                    log.info(f"YouTube API EN re-initialized on cycle {ciclo}.")
+                except Exception as _reinit:
+                    log.warning(f"YouTube API EN re-init failed on cycle {ciclo}: {_reinit}")
             proc_h = None
 
             blocos = listar_blocos()

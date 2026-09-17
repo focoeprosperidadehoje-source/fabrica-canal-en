@@ -122,7 +122,7 @@ grade_para_processar = []
 data_check = limite_passado
 while data_check <= meta_estoque:
     horarios_presentes = dias_existentes.get(data_check, [])
-    if len(horarios_presentes) < 2:
+    if len(horarios_presentes) < len(GRADE_DIARIA):
         data_alvo = data_check
         grade_para_processar = [v for v in GRADE_DIARIA if v["horario"] not in horarios_presentes]
         break

@@ -2,6 +2,8 @@
 from google.genai import Client
 from google.oauth2.service_account import Credentials
 import gspread
+from zoneinfo import ZoneInfo
+import novenas
 
 CHAVE_API = os.environ.get("GEMINI_API_KEY")
 CHAVE_API_2 = os.environ.get("GEMINI_API_KEY_2", "")
@@ -88,6 +90,8 @@ PILARES = {
     4: "Mercy and Physical Healing", 5: "The Mantle of Mary", 6: "Miracles and Gratitude"
 }
 GRADE_DIARIA = [
+    # Slot 06:00 — Novenas (novenas.py). Sem retroatividade; só a partir de novenas.ATIVACAO_06H.
+    {"horario": "06:00", "personagem": "Maria", "idioma": "EN", "foco": "Morning consecration to Our Lady: protection, direction and strength for the day that begins.", "periodo": novenas.CFG["periodo"], "ativacao": novenas.ATIVACAO_06H},
     {"horario": "18:00", "personagem": "Maria", "idioma": "EN", "foco": "HYBRID: Address the pain of the Pillar of the Day and, at the end, transition into the evening prayer, asking for deep sleep, relief from anxiety and night protection.", "periodo": "tonight"}
 ]
 
@@ -103,7 +107,8 @@ valores_coluna_a = [linha[0].strip() for linha in todas_linhas[1:] if len(linha)
 valores_coluna_b = [linha[1].strip() for linha in todas_linhas[1:] if len(linha) > 1]
 
 dias_existentes = {}
-hoje = datetime.date.today()
+agora_local = datetime.datetime.now(ZoneInfo(novenas.TZ))
+hoje = agora_local.date()
 limite_passado = hoje - datetime.timedelta(days=2)
 
 for d_str, h_str in zip(valores_coluna_a, valores_coluna_b):
@@ -116,15 +121,26 @@ for d_str, h_str in zip(valores_coluna_a, valores_coluna_b):
         except: pass
 
 meta_estoque = hoje + datetime.timedelta(days=5)
+
+def slot_exigido(v, d):
+    """Travas do slot 06:00: sem retroatividade (evita upload público imediato de vídeo atrasado)."""
+    if v.get("ativacao") and d < v["ativacao"]:
+        return False
+    if v["horario"] == "06:00":
+        if d < hoje: return False
+        if d == hoje and agora_local.hour >= 4: return False
+        if novenas.plano_do_dia(d) is None: return False
+    return True
 data_alvo = None
 grade_para_processar = []
 
 data_check = limite_passado
 while data_check <= meta_estoque:
     horarios_presentes = dias_existentes.get(data_check, [])
-    if len(horarios_presentes) < len(GRADE_DIARIA):
+    faltando = [v for v in GRADE_DIARIA if slot_exigido(v, data_check) and v["horario"] not in horarios_presentes]
+    if faltando:
         data_alvo = data_check
-        grade_para_processar = [v for v in GRADE_DIARIA if v["horario"] not in horarios_presentes]
+        grade_para_processar = faltando
         break
     data_check += datetime.timedelta(days=1)
 
@@ -138,9 +154,98 @@ print(f"\n📅 TARGET DATE: {data_alvo} | Pillar: {pilar_do_dia}")
 
 esperas_exponenciais = [10, 20, 40, 80, 120]
 
+def gerar_novena(data_alvo, plano, contexto_sazonal):
+    """Linha da planilha para um dia de novena (festa ou pedido) — rito fixo em novenas.py."""
+    C = novenas.CFG
+    n = plano["dia"]
+    categoria = None
+    if plano["tipo"] == "festa":
+        f = plano["festa"]
+        invocacao = f["invocacao"]
+        contexto = (f"This is the '{f['nome']}', preparing for: {f['festa']}. Today is day {n} of 9. "
+                    f"INTENTION OF THE DAY (the believer's pain): {novenas.INTENCOES_FESTA[n - 1]}.")
+    else:
+        categoria = novenas.escolher_tema_pedido(gc.open_by_key(ID_PLANILHA), plano["ciclo_inicio"])
+        rotulo, descr = novenas.CATEGORIAS[categoria]
+        invocacao = C["invocacao_padrao"]
+        contexto = (f"This is the '{rotulo}', a 9-day petition novena to Our Lady ({invocacao}). "
+                    f"Single theme of the novena: {descr}. Today is day {n} of 9. {novenas.PROGRESSAO_PEDIDO[n]}")
+    if data_alvo.weekday() == 4:
+        contexto += " TODAY IS FRIDAY: gently touch on Mercy and Forgiveness."
+    if contexto_sazonal:
+        contexto += f" Season/feast context: {contexto_sazonal}."
+    cta_final = ("Invite them to pray the complete novena in the channel playlist and to keep praying with us live 24 hours."
+                 if n == 9 else "Invite them to come back tomorrow morning for the next day of the novena (never say an exact hour).")
+    prompt = f"""
+    You are an empathetic Catholic spiritual guide, faithful to Church doctrine. Write ONLY the VARIABLE parts of a NOVENA video addressed to {invocacao}.
+    WRITE EVERYTHING IN {novenas.LANG_NAME}. Natural, native, devotional language — never translated-sounding.
+    The fixed rite (sign of the cross, act of contrition, novena prayer, Our Father, Hail Mary, Glory Be) is ALREADY inserted by the system — DO NOT write those prayers.
+    CONTEXT: {contexto}
+    Time of day: "{C['periodo']}".
+
+    RULES:
+    1. GANCHO (120-180 words) — HOOK 3A: (a) EMPATHIC STATEMENT about the pain of the day's intention, NO direct questions; (b) sensory setting of the morning that begins; (c) announce that today is day {n} of the novena and that {invocacao} has a grace for whoever stays until the end.
+    2. REFLEXAO (450-600 words): a short Bible passage (cite book and chapter) linked to the intention, and a warm meditation. Include 1 invisible retention hook (anticipation or partial revelation) without breaking the devotional mood.
+    3. SUPLICA (350-500 words): personal first-person supplication for the day's intention; MUST include a block of intercession for health (the sick in the family, physical and emotional healing). Arc: vulnerability → intercession → trust.
+    4. ENCERRAMENTO (120-180 words): end in STRENGTH and confidence, never in pleading. {cta_final} Also {C['cta_pista']}. FORBIDDEN: "type Amen" style forced engagement.
+    5. PROMESSA (max 40 characters): complement of the title, which already starts with the novena name and the day. Do NOT repeat the novena name. {'Focus on the intention of the day.' if plano['tipo'] == 'festa' else C['promessa_regra']} No quotes, no emoji, no date.
+    6. NEVER mention exact hours. Use many ellipses (...) for voice pauses. PLAIN TEXT: no JSON, no asterisks, no brackets, no section titles inside the texts.
+    7. FORBIDDEN to mention any saint or devotion other than Our Lady, Jesus and God the Father.
+
+    EXACT FORMAT (keep these English labels, in this order; content in {novenas.LANG_NAME}):
+    PROMESSA: ...
+    GANCHO: ...
+    REFLEXAO: ...
+    SUPLICA: ...
+    ENCERRAMENTO: ...
+    DESC: [3 SEO paragraphs: 1st "Novena — {n}/9" + invitation to the 24h live; 2nd emotional description of the day's intention; 3rd keywords and hashtags including #novena]
+    TAGS: [comma-separated tags including the word for novena]
+    """
+    rotulos = ["PROMESSA", "GANCHO", "REFLEXAO", "SUPLICA", "ENCERRAMENTO", "DESC", "TAGS"]
+    def _lab(r): return r"(?:^|\n)[ \t>*_#]*" + r + r"[ \t*_]*:"
+    padrao_fim = "|".join(_lab(r) for r in rotulos)
+    for i in range(5):
+        try:
+            texto = _gerar(modelos_cascata[i], prompt)
+        except Exception as e:
+            print(f"   ⚠️ Gemini: {e}"); time.sleep(esperas_exponenciais[i]); continue
+        t = texto.replace("REFLEXÃO", "REFLEXAO").replace("SÚPLICA", "SUPLICA")
+        partes = {}
+        for r in rotulos:
+            m = re.search(_lab(r) + r"\s*(.*?)(?=(?:" + padrao_fim + r")|\Z)", t, re.IGNORECASE | re.DOTALL)
+            partes[r] = re.sub(r'[*#\[\]{}]', '', m.group(1)).strip() if m else ""
+        palavras = sum(len(partes[k].split()) for k in ["GANCHO", "REFLEXAO", "SUPLICA", "ENCERRAMENTO"])
+        if all(partes[k] for k in ["GANCHO", "REFLEXAO", "SUPLICA", "ENCERRAMENTO"]) and palavras >= 700:
+            break
+        print(f"   ⚠️ Resposta incompleta ({palavras} palavras). Nova tentativa...")
+        time.sleep(esperas_exponenciais[i])
+    else:
+        print("   ❌ Novena não gerada nesta execução — o scanner tenta de novo na próxima.")
+        return None
+    promessa = partes["PROMESSA"].replace('"', '').strip()[:45]
+    titulo = novenas.montar_titulo(plano, promessa, categoria, data_alvo)
+    roteiro = novenas.montar_roteiro(plano, partes["GANCHO"], partes["REFLEXAO"], partes["SUPLICA"], partes["ENCERRAMENTO"])
+    return [str(data_alvo), "06:00", novenas.STATUS_PRONTO, "MARIA", "EN", novenas.tema_codificado(plano, categoria), titulo, roteiro,
+            partes["TAGS"] or "novena", partes["DESC"] or f"Novena {n}/9", "Pending", novenas.texto_thumb(plano)]
+
+
 for video in grade_para_processar:
     horario, persona, idioma, foco_teologico, periodo = video["horario"], video["personagem"].upper(), video["idioma"], video["foco"], video["periodo"]
     print(f"🎬 PRODUCING: {horario} | {persona}")
+
+    if horario == "06:00":
+        plano = novenas.plano_do_dia(data_alvo)
+        if plano and plano["tipo"] in ("festa", "pedido"):
+            nova_linha = gerar_novena(data_alvo, plano, contexto_sazonal)
+            if nova_linha:
+                try:
+                    aba.update(values=[nova_linha], range_name=f"A{proxima_linha_vazia}:L{proxima_linha_vazia}")
+                    print(f"   ✅ NOVENA salva na linha {proxima_linha_vazia}: {nova_linha[6]}")
+                    proxima_linha_vazia += 1
+                    time.sleep(5)
+                except Exception as e: print(f"   ❌ Falha ao salvar novena: {e}")
+            continue
+        print(f"   ☀️ Slot 06:00 avulso ({plano.get('motivo') if plano else '-'})")
 
     if data_alvo.weekday() == 4:
         foco_teologico += " MANDATORY: Deepen the theme of Mercy and Forgiveness." if horario == "06:00" else " MANDATORY: Connect the theme with the Passion of Christ and the Sacrament of Reconciliation."

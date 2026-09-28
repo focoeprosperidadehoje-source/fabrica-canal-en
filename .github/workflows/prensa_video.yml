@@ -20,6 +20,7 @@ jobs:
     strategy:
       matrix:
         horario:
+          - '06:00'
           - '18:00'
       fail-fast: false
 

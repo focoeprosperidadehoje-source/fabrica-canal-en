@@ -1,18 +1,17 @@
-name: 1. Usina Longos (EN)
+name: 4. Temas dos Comentarios (Novenas)
 
 on:
   schedule:
-    - cron: '30 1 * * *' # 21:30 ET (prev day)
-    - cron: '30 2 * * *' # 22:30 ET (prev day)
-    - cron: '30 3 * * *' # 23:30 ET (prev day)
+    - cron: '20 5 * * 0' # domingo 02:00 BRT
   push:
     paths:
-      - '.github/workflows/despertador.yml'  # roda na hora sempre que este arquivo muda
+      - '.github/workflows/temas_comentarios.yml'
   workflow_dispatch:
 
 jobs:
-  produzir_videos:
+  ranking:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
@@ -20,12 +19,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3'
-      - run: pip install --upgrade google-genai gspread
+      - run: pip install google-api-python-client google-auth-oauthlib google-auth-httplib2 gspread google-genai
       - env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
           GOOGLE_CREDENTIALS_EN: ${{ secrets.GOOGLE_CREDENTIALS_EN }}
-        run: for i in 1 2 3 4 5 6; do python usina.py || echo "execucao $i falhou"; done
-
-# reindex
-# novenas 06h ativadas 2026-09-28
+          YOUTUBE_TOKEN_EN: ${{ secrets.YOUTUBE_TOKEN_EN }}
+        run: python temas_comentarios.py

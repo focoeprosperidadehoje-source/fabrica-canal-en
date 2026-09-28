@@ -6,6 +6,9 @@ on:
     - cron: '30 9 * * *'  # 05:30 ET
     - cron: '30 20 * * *' # 16:30 ET
     - cron: '30 21 * * *' # 17:30 ET
+  workflow_run:  # renderiza logo depois de cada execução da usina
+    workflows: ["1. Usina Longos (EN)"]
+    types: [completed]
   workflow_dispatch:
 
 jobs:

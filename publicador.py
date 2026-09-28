@@ -135,8 +135,17 @@ def listar_arquivos(folder_id, extensoes=None):
     return res
 
 def obter_duracao(arquivo):
-    try: return float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', arquivo], capture_output=True, text=True).stdout.strip())
-    except: return 600
+    # 1) ffprobe (se existir)  2) fallback: ffmpeg -i (ffprobe NAO vem no ffmpeg estatico instalado pelos workflows)
+    try:
+        out = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', arquivo], capture_output=True, text=True).stdout.strip()
+        if out: return float(out)
+    except Exception: pass
+    try:
+        err = subprocess.run(['ffmpeg', '-hide_banner', '-i', arquivo], capture_output=True, text=True).stderr
+        m = re.search(r'Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)', err)
+        if m: return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+    except Exception: pass
+    return 600
 
 def filtro_broll(nome, horario):
     n = nome.lower()

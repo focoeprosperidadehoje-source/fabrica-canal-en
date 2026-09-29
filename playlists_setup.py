@@ -10,7 +10,13 @@ Fontes dos nomes (exatamente os mesmos que o publicador procura em _playlist_nov
 Idempotente: só cria o que não existe; só adiciona à curada o vídeo que ainda não está nela.
 Env: CANAL (ES/PT/EN/PL/FR/IT), GOOGLE_CREDENTIALS[_XX], YOUTUBE_TOKEN_XX, CURADA_TITULO, CURADA_IDS (opcionais)
 """
-import os, json, datetime
+import os, json, datetime, sys, traceback
+
+def _anotar(e):
+    msg = str(e).replace("\n", " ")[:400]
+    print(f"::error::playlists_setup falhou: {type(e).__name__}: {msg}")
+
+sys.excepthook = lambda t, v, tb: (traceback.print_exception(t, v, tb), _anotar(v))
 import gspread
 from google.oauth2.service_account import Credentials
 from google.oauth2.credentials import Credentials as YTCredentials
@@ -98,7 +104,7 @@ for n in necessarias:
     try:
         garantir(n, DESC[CANAL].format(n=n))
     except Exception as e:
-        print(f"   ❌ erro em {n}: {e}")
+        print(f"   ❌ erro em {n}: {e}"); _anotar(e)
 
 # ---------- 3) playlist curada (maior retenção) ----------
 titulo_c = os.environ.get("CURADA_TITULO", "").strip()
@@ -130,4 +136,5 @@ if titulo_c and ids_c:
     except Exception as e:
         print(f"   ❌ curada: {e}")
 
+print(f"::notice::playlists_setup OK — {len(necessarias)} playlists de novena verificadas")
 print("\n✅ FIM")

@@ -37,11 +37,11 @@ DESC = {
 LANG = {"PT": "pt-BR", "ES": "es-MX", "EN": "en-US", "PL": "pl", "FR": "fr-FR", "IT": "it-IT"}
 
 gjson = os.environ.get(f"GOOGLE_CREDENTIALS_{CANAL}") or os.environ.get("GOOGLE_CREDENTIALS")
-creds = Credentials.from_service_account_info(json.loads(gjson), scopes=[
+creds = Credentials.from_service_account_info(json.loads(gjson.strip().lstrip("\ufeff")), scopes=[
     "https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"])
 gc = gspread.authorize(creds)
 
-yt_creds = YTCredentials.from_authorized_user_info(json.loads(os.environ[f"YOUTUBE_TOKEN_{CANAL}"]))
+yt_creds = YTCredentials.from_authorized_user_info(json.loads(os.environ[f"YOUTUBE_TOKEN_{CANAL}"].strip().lstrip("\ufeff")))
 if yt_creds.expired and yt_creds.refresh_token:
     yt_creds.refresh(Request())
 youtube = build("youtube", "v3", credentials=yt_creds)

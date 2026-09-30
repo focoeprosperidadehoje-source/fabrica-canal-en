@@ -190,7 +190,7 @@ def criar_thumbnail(img_path, texto_curto, horario, persona, caminho_saida):
         font_size -= 5
 
     y_text = (1080 - (len(linhas) * font_size * 1.1)) / 2
-    cores = ["white", "#FFD700", "white"]
+    cores = ["white"] * (len(linhas) - 1) + ["#FFD700"]  # modelo campeao: palavra de urgencia (ultima linha) em amarelo
     for i, linha in enumerate(linhas):
         w = draw.textlength(linha, font=font)
         x_text = 960 + ((960 - w) / 2)

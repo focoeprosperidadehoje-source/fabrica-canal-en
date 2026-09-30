@@ -1,4 +1,4 @@
-﻿import os, sys, json, time, re, datetime
+import os, sys, json, time, re, datetime
 from google.genai import Client
 from google.oauth2.service_account import Credentials
 import gspread
@@ -279,12 +279,12 @@ for video in grade_para_processar:
 
     RETENTION AND COPYWRITING RULES (VERY IMPORTANT):
     1. TITLE FORMULA: Follow EXACTLY the format instruction below. For Our Lady: MANDATORY to start with 'Our Lady' or 'Blessed Mother'. For Jesus: start with the believer's pain. It is STRICTLY FORBIDDEN to start with the word "Prayer".
-    2. THUMB FORMULA: Maximum 4 words. MUST be an urgency trigger connected to the theme (Ex: "URGENT MIRACLE TODAY", "SAVE YOUR FAMILY", "END ANXIETY NOW").
+    2. THUMB FORMULA (CHAMPION MODEL — real CTR data): 2 or 3 words = CONCRETE RESULT + urgency word at the end (TODAY / NOW). Ex: "MIRACLE TODAY", "OPEN DOORS NOW", "HEALING TODAY", "RESTORE FAMILY NOW". FORBIDDEN: calm/abstract words alone without a result (e.g. "DEEP PEACE", "PEACEFUL NIGHT", "REST") — real test: "MIRACLE TODAY" 4.7% CTR vs "DEEP PEACE TONIGHT" 1.6%.
     3. THE 15-SECOND RULE (HOOK 3A): The beginning of the script MUST have 3 quick blocks:
        - Attention (0-5s): An EMPATHETIC AFFIRMATION about the believer's pain. (FORBIDDEN to use direct questions).
        - Sensory Setting (5-10s): Connect the pain with the scene of {periodo}.
        - Authority/Agenda (10-15s): Say that {persona_prompt} has a word of liberation and ask them to stay until the end.
-    4. IMMEDIATE CTA: {cta_comentarios}
+    4. IMMEDIATE CTA: {cta_comentarios} In the CLOSING, also naturally ask the listener to SEND this prayer to someone who needs it (e.g. "If someone came to your mind while we prayed, send them this prayer right now."). Sharing is the main ask at the end.
     5. ATTENTION RESET (MID-VIDEO): Exactly at the midpoint of the script, insert a spoken phrase to reconnect the listener.
     6. INVISIBLE RETENTION HOOKS: Every 300 to 400 words, organically incorporate — without the believer noticing the technique — one of the following: (a) ANTICIPATION: announce that something important will be revealed soon, without revealing it yet; (b) PARTIAL REVELATION: deliver part of the spiritual answer and signal there is more; (c) EMOTIONAL VALIDATION: name exactly what the believer is feeling at that moment, creating deep recognition; (d) BLOCK SHIFT: make an unexpected tone transition — from supplication to gratitude, from pain to hope — that renews attention. The hooks must be invisible: the believer does not perceive the technique, only feels they cannot stop listening. Never break the devotional atmosphere.
 

@@ -104,7 +104,7 @@ for data_alvo, grade_para_processar in gaps:
         {contexto_eco}
 
         MANDATORY SCRIPT STRUCTURE (PERFECT LOOP):
-        1. HOOK (Beginning): The first sentence of the video. MANDATORY to start with lowercase ellipsis ("..."). It is the SYNTACTIC COMPLEMENT of the final sentence — together they form a single continuous and complete sentence.
+        1. HOOK (Beginning): The first sentence of the video. MANDATORY to start with lowercase ellipsis ("..."). It is the SYNTACTIC COMPLEMENT of the final sentence — together they form a single continuous and complete sentence. RETENTION RULE (mandatory): within the first 10 words the opening line speaks DIRECTLY to the viewer's pain, in second person and tied to today's theme (e.g.: "...if someone in your home is sick, this prayer is for you."). Never open with a greeting, context or a generic line — the viewer decides in 2 seconds whether to stay.
         2. PRAYER: Write EXACTLY this prayer: "{oracao_padrao}"
         3. LOOP SENTENCE (End): The last sentence of the video. MANDATORY to end with ellipsis ("..."). It must be SYNTACTICALLY INCOMPLETE — an open clause whose natural complement is exactly the opening sentence. The listener does not perceive the cut because the brain joins end and beginning as a single continuous sentence.
 

@@ -563,6 +563,61 @@ def extrair_suplicantes(msgs: list[dict], max_s: int = 6) -> list[dict]:
             break
     return resultado
 
+_canal_id_cache = {}
+
+def pedidos_comentarios(yt, n: int = 6, max_idade_h: int = 72) -> list[dict]:
+    """Pedidos reais deixados nos comentários do canal (mais recentes primeiro), ainda não lidos na live.
+    Custo: 1 unidade de cota por chamada (+1 na primeira, para descobrir o ID do canal)."""
+    try:
+        if "id" not in _canal_id_cache:
+            r = yt.channels().list(part="id", mine=True).execute()
+            _canal_id_cache["id"] = r["items"][0]["id"]
+        cid = _canal_id_cache["id"]
+        arq = DIR_SUPLICAS.parent / "pedidos_lidos.json"
+        try:
+            lidos = set(json.load(open(arq, encoding="utf-8")))
+        except Exception:
+            lidos = set()
+        resp = yt.commentThreads().list(part="snippet", allThreadsRelatedToChannelId=cid,
+                                        maxResults=100, order="time", textFormat="plainText").execute()
+        agora = datetime.now(timezone.utc)
+        out = []
+        for it in resp.get("items", []):
+            tid = it.get("id")
+            if not tid or tid in lidos:
+                continue
+            s = it["snippet"]["topLevelComment"]["snippet"]
+            if s.get("authorChannelId", {}).get("value") == cid:
+                continue
+            try:
+                pub = datetime.fromisoformat(s["publishedAt"].replace("Z", "+00:00"))
+                if (agora - pub).total_seconds() > max_idade_h * 3600:
+                    continue
+            except Exception:
+                pass
+            texto = (s.get("textOriginal") or s.get("textDisplay") or "").strip()
+            if len(texto) < 4:
+                continue
+            bruto = re.sub(r"^@", "", s.get("authorDisplayName", "")).strip()
+            bruto = re.sub(r"([a-zà-ÿ])([A-ZÀ-Ý])", r"\1 \2", bruto)
+            nome = re.split(r"[\s\-_.\d]+", bruto)[0][:20] if bruto else ""
+            if len(nome) < 2:
+                continue
+            out.append({"nome": nome, "pedido": texto[:160], "_tid": tid})
+            if len(out) >= n:
+                break
+        if out:
+            lidos.update(o["_tid"] for o in out)
+            json.dump(sorted(lidos)[-5000:], open(arq, "w", encoding="utf-8"))
+            log.info(f"Súplica: {len(out)} pedido(s) real(is) dos comentários")
+        for o in out:
+            o.pop("_tid", None)
+        return out
+    except Exception as e:
+        log.warning(f"pedidos_comentarios: {e}")
+        return []
+
+
 def nomes_ficticios(n: int = 5) -> list[dict]:
     # SEM NOMES INVENTADOS (decisao Leandro 2026-09-29): quando nao ha pedidos reais,
     # a suplica intercede por GRUPOS da comunidade, nunca por pessoas ficticias.
@@ -1091,7 +1146,7 @@ def loop_suplicas():
                 bid_h = _estado.get("live_id_h")
 
             msgs = buscar_msgs_chat(yt, bid_h) if bid_h else []
-            suplicantes = extrair_suplicantes(msgs) or nomes_ficticios(5)
+            suplicantes = (extrair_suplicantes(msgs) + pedidos_comentarios(yt, 6))[:6] or nomes_ficticios(5)
 
             roteiro = _gerar_roteiro_suplica(suplicantes)
             if not roteiro:

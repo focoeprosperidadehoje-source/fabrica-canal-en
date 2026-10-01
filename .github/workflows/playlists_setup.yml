@@ -3,6 +3,7 @@ name: 5. Playlists das Novenas (EN)
 on:
   schedule:
     - cron: '37 7 * * *' # diario, apos reset da cota (07:00 UTC)
+    - cron: '7 13 * * *' # 2a passada: pega o 06:00 do ES/PT
   push:
     paths:
       - '.github/workflows/playlists_setup.yml'

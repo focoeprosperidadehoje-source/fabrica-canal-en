@@ -137,4 +137,49 @@ if titulo_c and ids_c:
         print(f"   ❌ curada: {e}")
 
 print(f"::notice::playlists_setup OK — {len(necessarias)} playlists de novena verificadas")
+# ---------- 4) vídeos de novena dentro das playlists (corrige falha de cota no upload) ----------
+try:
+    import re as _re
+    _novena_ids = {existentes[n] for n in necessarias if n in existentes}
+    if _novena_ids:
+        _ch = youtube.channels().list(part="contentDetails", mine=True).execute()
+        _up = _ch["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
+        _r = youtube.playlistItems().list(part="snippet,contentDetails", playlistId=_up, maxResults=50).execute()
+        _limite = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+        _pend = []
+        for _it in _r.get("items", []):
+            _sn = _it["snippet"]
+            try:
+                _pub = datetime.datetime.strptime(_sn.get("publishedAt", "")[:19], "%Y-%m-%dT%H:%M:%S")
+                if _pub < _limite:
+                    continue
+            except Exception:
+                pass
+            _m = _re.search(r"playlist\?list=([A-Za-z0-9_-]+)", _sn.get("description", "") or "")
+            if _m and _m.group(1) in _novena_ids:
+                _pend.append((_it["contentDetails"]["videoId"], _m.group(1), _sn.get("title", "")))
+        _cache = {}
+        for _vid, _pid, _tit in reversed(_pend):  # mais antigo primeiro = ordem dos dias
+            if _pid not in _cache:
+                _ja, _tok = set(), None
+                while True:
+                    _rr = youtube.playlistItems().list(part="contentDetails", playlistId=_pid, maxResults=50, pageToken=_tok).execute()
+                    _ja.update(i["contentDetails"]["videoId"] for i in _rr.get("items", []))
+                    _tok = _rr.get("nextPageToken")
+                    if not _tok:
+                        break
+                _cache[_pid] = _ja
+            if _vid in _cache[_pid]:
+                continue
+            try:
+                youtube.playlistItems().insert(part="snippet", body={"snippet": {
+                    "playlistId": _pid, "resourceId": {"kind": "youtube#video", "videoId": _vid}}}).execute()
+                _cache[_pid].add(_vid)
+                print(f"   ➕ novena na playlist: {_tit[:70]} ({_vid}) -> {_pid}")
+            except Exception as e:
+                print(f"   ❌ novena {_vid}: {e}")
+        print(f"🔁 Vídeos de novena verificados: {len(_pend)}")
+except Exception as e:
+    print(f"⚠️ Sincronização de vídeos da novena: {e}")
+
 print("\n✅ FIM")

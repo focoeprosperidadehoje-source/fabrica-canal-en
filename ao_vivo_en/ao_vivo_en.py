@@ -1439,6 +1439,7 @@ def loop_transmissor():
                         _falhas_rtmp  = 0
 
                     if not _ev_suplica_gerar.is_set() and (time.time() - ultimo_suplica) >= SUPLICA_INTERVAL:
+                        _limpar_suplicas_antigas(3)  # fix cap: súplicas já tocadas saem da contagem
                         sups_prontas = len(list(DIR_SUPLICAS.glob("suplica_*_h.mp4")))
                         if sups_prontas < SUPLICA_MAX_READY:
                             _ev_suplica_gerar.set()

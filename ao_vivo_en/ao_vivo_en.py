@@ -971,6 +971,13 @@ def _aplicar_thumbnail(yt, bid: str):
         top  = (new_h - h) // 2
         bg   = bg.crop((left, top, left + w, top + h))
 
+        # Close no rosto (CTR): zoom 1,45x no terço superior + tom quente
+        _Z = 1.45
+        _zw, _zh = int(w / _Z), int(h / _Z)
+        _x0 = max(0, min(w - _zw, w // 2 - _zw // 2))
+        _y0 = max(0, min(h - _zh, int(h * 0.36) - _zh // 2))
+        bg = bg.crop((_x0, _y0, _x0 + _zw, _y0 + _zh)).resize((w, h), Image.LANCZOS)
+        bg = Image.blend(bg, Image.new("RGB", (w, h), (255, 150, 60)), 0.10)
         overlay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         ov_draw = ImageDraw.Draw(overlay)
         grad_start = int(h * 0.42)

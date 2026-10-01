@@ -181,3 +181,43 @@ try:
 except Exception as e:
     print(f"⚠️ DIGITAL PASTOR general error: {e}")
 print("🚀 COMMUNITY STAGE COMPLETED!")
+
+
+# ===== EXPORTA PEDIDOS PARA A LIVE 24h (o token da live não lê comentários) =====
+try:
+    import os as _os, json as _json, datetime as _dt
+    from google.oauth2.service_account import Credentials as _SAC
+    from googleapiclient.discovery import build as _build
+    _CANAL = "EN"
+    _PLAN = "1KgIjWrLUVlllhlZB1R9fkHGxxZlLsax1aOVGZrYwgnU"
+    _ABA = f"PEDIDOS_{_CANAL}"
+    _info = _json.loads(_os.environ.get(f"GOOGLE_CREDENTIALS_{_CANAL}") or _os.environ["GOOGLE_CREDENTIALS"])
+    _sh = _build("sheets", "v4", credentials=_SAC.from_service_account_info(
+        _info, scopes=["https://www.googleapis.com/auth/spreadsheets"]), cache_discovery=False)
+    _cid = youtube.channels().list(part="id", mine=True).execute()["items"][0]["id"]
+    _r = youtube.commentThreads().list(part="snippet", allThreadsRelatedToChannelId=_cid, maxResults=100,
+                                       order="time", textFormat="plainText").execute()
+    _lim = _dt.datetime.utcnow() - _dt.timedelta(hours=72)
+    _rows = [["ThreadId", "Nome", "Pedido", "Data"]]
+    for _it in _r.get("items", []):
+        _s = _it["snippet"]["topLevelComment"]["snippet"]
+        if _s.get("authorChannelId", {}).get("value") == _cid:
+            continue
+        _pub = _s.get("publishedAt", "")
+        try:
+            if _dt.datetime.strptime(_pub[:19], "%Y-%m-%dT%H:%M:%S") < _lim:
+                continue
+        except Exception:
+            pass
+        _rows.append([_it["id"], _s.get("authorDisplayName", ""), (_s.get("textOriginal") or "")[:300], _pub])
+    _abas = [x["properties"]["title"] for x in _sh.spreadsheets().get(
+        spreadsheetId=_PLAN, fields="sheets.properties.title").execute()["sheets"]]
+    if _ABA not in _abas:
+        _sh.spreadsheets().batchUpdate(spreadsheetId=_PLAN, body={"requests": [
+            {"addSheet": {"properties": {"title": _ABA}}}]}).execute()
+    _sh.spreadsheets().values().clear(spreadsheetId=_PLAN, range=f"{_ABA}!A:D").execute()
+    _sh.spreadsheets().values().update(spreadsheetId=_PLAN, range=f"{_ABA}!A1", valueInputOption="RAW",
+                                       body={"values": _rows}).execute()
+    print(f"📮 Pedidos exportados para a live ({_ABA}): {len(_rows) - 1}")
+except Exception as e:
+    print(f"⚠️ Exportar pedidos para a live: {e}")

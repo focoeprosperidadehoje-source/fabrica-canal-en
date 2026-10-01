@@ -172,9 +172,6 @@ DESCRICAO_LIVE = (
     "Leave your prayer request in the comments — your Heavenly Mother is listening to you.\n\n"
     "💝 Support this mission of continuous prayer:\n"
     "👉 https://www.paypal.com/donate/?hosted_button_id=P5E5EBVM2HWGS\n\n"
-    "📿 Blessed items:\n"
-    "• Rosary of Our Lady → https://amzn.to/40ewSZU\n"
-    "• Large Print Bible → https://amzn.to/4afDGLy\n\n"
     "🔔 Hit the bell · 👍 Like · ➡️ Visit the channel"
 )
 

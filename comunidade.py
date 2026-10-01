@@ -115,7 +115,7 @@ if texto_fixo:
                     comentarios = youtube.commentThreads().list(part='snippet', videoId=v_id, maxResults=100).execute()
                     if not any(t['snippet']['topLevelComment']['snippet'].get('authorChannelId', {}).get('value') == MEU_CANAL_ID for t in comentarios.get('items', [])):
                         if "#shorts" in v_titulo.lower():
-                            comentario_final = f"{texto_fixo}\n\n🙏 May this quick prayer bless your day! Visit our channel for the full prayers.\n\nOur Playlists:\n🌅 Morning Prayers: https://www.youtube.com/playlist?list=PLcBcFg8r0RDmY0zEywQRGDDVEprFvK-QI\n🌌 Evening Prayers: https://www.youtube.com/playlist?list=PLcBcFg8r0RDkgQba8FVPPgHW0NgHEOzSm"
+                            comentario_final = f"{texto_fixo}\n\n🙏 May this quick prayer bless your day! Visit our channel for the full prayers. Look for the Morning Prayers and Evening Prayers playlists on our channel page."
                         else:
                             link_playlist = "https://www.youtube.com/playlist?list=PLcBcFg8r0RDmY0zEywQRGDDVEprFvK-QI"
                             if "morning" in v_titulo.lower(): link_playlist = "https://www.youtube.com/playlist?list=PLcBcFg8r0RDmY0zEywQRGDDVEprFvK-QI"

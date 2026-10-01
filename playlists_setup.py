@@ -156,8 +156,16 @@ try:
             except Exception:
                 pass
             _m = _re.search(r"playlist\?list=([A-Za-z0-9_-]+)", _sn.get("description", "") or "")
-            if _m and _m.group(1) in _novena_ids:
-                _pend.append((_it["contentDetails"]["videoId"], _m.group(1), _sn.get("title", "")))
+            _pid_v = _m.group(1) if (_m and _m.group(1) in _novena_ids) else None
+            if not _pid_v:
+                # sem link na descrição (playlist indisponível no upload): casa pelo título
+                _chave = _re.split(r"\s[–—-]\s|\s\d+º\s*Dia", _sn.get("title", ""))[0].strip().lower()
+                _cands = [existentes[n] for n in necessarias if n in existentes and len(_chave) >= 10
+                          and n.lower().startswith(_chave)]
+                if _cands:
+                    _pid_v = _cands[-1]
+            if _pid_v:
+                _pend.append((_it["contentDetails"]["videoId"], _pid_v, _sn.get("title", "")))
         _cache = {}
         for _vid, _pid, _tit in reversed(_pend):  # mais antigo primeiro = ordem dos dias
             if _pid not in _cache:

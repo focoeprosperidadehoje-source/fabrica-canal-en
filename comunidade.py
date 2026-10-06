@@ -35,16 +35,16 @@ def _gerar_comunidade(prompt):
     raise RuntimeError("All Gemini keys failed.")
 
 def obter_modelo_lite():
-    # gemini-2.5-flash-lite: free tier, 15 RPM, ~1000 RPD por projeto
+    # gemini-flash-lite-latest: alias auto-atualizado — sempre o lite mais recente
     try:
         modelos = gemini_client.models.list()
         nomes = [m.name for m in modelos if 'generateContent' in m.supported_generation_methods]
-        for preferido in ['gemini-2.5-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite']:
-            if any(preferido in n for n in nomes):
+        for preferido in ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite']:
+            if preferido.endswith('-latest') or any(preferido in n for n in nomes):
                 return preferido
-        return 'gemini-2.5-flash-lite'
+        return 'gemini-flash-lite-latest'
     except:
-        return 'gemini-2.5-flash-lite'
+        return 'gemini-flash-lite-latest'
 
 modelo_comunidade = obter_modelo_lite()
 print(f"🤖 AI model selected for Community: {modelo_comunidade}")

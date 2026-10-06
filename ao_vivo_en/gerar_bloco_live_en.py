@@ -83,6 +83,9 @@ def _chamar_gemini(prompt: str, modelos: list, max_tokens: int = 2048) -> str:
                     contents=prompt,
                     config=genai_types.GenerateContentConfig(max_output_tokens=max_tokens),
                 )
+                if not resp.text:
+                    print(f"  [WARN] {modelo} [{chave[-6:]}]: resposta None/vazia")
+                    continue
                 return resp.text.strip()
             except Exception as e:
                 print(f"  [WARN] {modelo} [{chave[-6:]}]: {str(e)[:80]}")

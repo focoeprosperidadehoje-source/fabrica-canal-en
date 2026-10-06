@@ -1,7 +1,8 @@
-import os, json, time, datetime, gspread
+import os, json, sys, time, datetime, gspread
 from google.oauth2.service_account import Credentials
 from google.oauth2.credentials import Credentials as YTCredentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from google.auth.transport.requests import Request
 from google.genai import Client
 
@@ -11,7 +12,7 @@ CHAVE_API_GEMINI = os.environ.get("GEMINI_API_KEY", "")
 CHAVE_API_GEMINI_2 = os.environ.get("GEMINI_API_KEY_2", "")
 CHAVES_GEMINI = [k for k in [CHAVE_API_GEMINI, CHAVE_API_GEMINI_2] if k]
 
-MAX_RESPOSTAS = 30
+MAX_RESPOSTAS = 10  # 10 × 50 unid/reply × 4 runs/dia = 2.000 unid/dia (antes: 30 → 6.000/dia)
 
 creds_sheets = Credentials.from_service_account_info(json.loads(GOOGLE_JSON), scopes=['https://www.googleapis.com/auth/spreadsheets'])
 gc = gspread.authorize(creds_sheets)
@@ -49,9 +50,15 @@ def obter_modelo_lite():
 modelo_comunidade = obter_modelo_lite()
 print(f"🤖 AI model selected for Community: {modelo_comunidade}")
 
-canal_response = youtube.channels().list(part='id,contentDetails', mine=True).execute()
-MEU_CANAL_ID = canal_response['items'][0]['id']
-UPLOADS_PLAYLIST_ID = canal_response['items'][0]['contentDetails']['relatedPlaylists']['uploads']
+try:
+    canal_response = youtube.channels().list(part='id,contentDetails', mine=True).execute()
+    MEU_CANAL_ID = canal_response['items'][0]['id']
+    UPLOADS_PLAYLIST_ID = canal_response['items'][0]['contentDetails']['relatedPlaylists']['uploads']
+except HttpError as e:
+    if "quotaExceeded" in str(e) or "quota" in str(e).lower():
+        print("⚠️ YouTube quota exceeded. Exiting cleanly — next run will retry automatically.")
+        sys.exit(0)
+    raise
 
 LINK_LIVE = f"https://www.youtube.com/channel/{MEU_CANAL_ID}/live"
 

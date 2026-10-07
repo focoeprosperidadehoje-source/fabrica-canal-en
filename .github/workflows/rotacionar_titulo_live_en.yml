@@ -1,0 +1,23 @@
+name: Rotacionar Título Live EN
+
+on:
+  schedule:
+    - cron: '10 */3 * * *'
+  workflow_dispatch:
+
+jobs:
+  rotacionar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependências
+        run: pip install google-api-python-client google-auth google-auth-httplib2 pytz --quiet
+
+      - name: Rotacionar título
+        env:
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_EN }}
+          TZ_NAME: America/New_York
+          TITULOS_JSON: >-
+            {"manha":"Our Lady Heals Your Body RIGHT NOW — Live Prayer 24H 🙏","tarde":"Our Lady Opens Closed Doors TODAY — Live Prayer 24H 🙏","noite":"Our Lady Shields You NOW from Every Attack — Live 24H 🙏","madrugada":"Our Lady Breaks Every Chain RIGHT NOW — Live Prayer 24H 🙏"}
+        run: python3 scripts/rotacionar_titulo_live.py

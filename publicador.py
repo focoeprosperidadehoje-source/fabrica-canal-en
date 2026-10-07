@@ -210,8 +210,6 @@ def _janela_06h(linha, index):
         tz = pytz.timezone(novenas.TZ)
         alvo = tz.localize(datetime.datetime.strptime(f"{str(linha.get('Data', '')).strip()} 06:00", "%Y-%m-%d %H:%M"))
         agora = datetime.datetime.now(tz)
-        if alvo - agora > datetime.timedelta(hours=84):
-            return False
         if agora - alvo > datetime.timedelta(hours=3):
             print(f"   ⏭️ Linha {index} (06:00 de {linha.get('Data')}) expirada — marcando 'Expirado'.")
             try: aba_principal.update_cell(index, col_status, 'Expirado')

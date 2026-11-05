@@ -1,0 +1,46 @@
+name: Gerar Vídeo Ambiente Noturno (EN)
+
+on:
+  schedule:
+    - cron: '0 10 * * 1'  # Segunda 10:00 UTC
+    - cron: '0 10 * * 4'  # Quinta  10:00 UTC
+  workflow_dispatch:
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_EN }}
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache FFmpeg
+        id: cache-ffmpeg
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/ffmpeg
+          key: ffmpeg-static-linux64-n7
+
+      - name: Instalar FFmpeg
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        run: |
+          wget -q -O /tmp/ffmpeg.tar.xz \
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
+          tar -xf /tmp/ffmpeg.tar.xz --strip-components=2 -C /tmp --wildcards '*/bin/ffmpeg'
+          sudo mv /tmp/ffmpeg /usr/local/bin/ffmpeg
+          sudo chmod +x /usr/local/bin/ffmpeg
+
+      - name: Baixar fonte Anton
+        run: wget -q -O Anton.ttf https://github.com/google/fonts/raw/main/ofl/anton/Anton-Regular.ttf
+
+      - name: Instalar dependências Python
+        run: |
+          pip install --quiet \
+            google-api-python-client google-auth-oauthlib google-auth-httplib2 \
+            Pillow gspread pytz
+
+      - name: Gerar vídeos ambiente
+        run: python gerar_video_ambiente.py

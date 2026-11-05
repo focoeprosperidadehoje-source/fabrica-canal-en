@@ -1,0 +1,21 @@
+name: Publicar Vídeos Ambiente EN (unlisted → public)
+
+on:
+  schedule:
+    - cron: '20 2 * * *'  # 02:20 UTC = 23:20 BRT
+  workflow_dispatch:
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      YOUTUBE_TOKEN_EN_JSON: ${{ secrets.YOUTUBE_TOKEN_EN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar dependências
+        run: pip install --quiet google-api-python-client google-auth-oauthlib google-auth-httplib2 gspread pytz
+      - name: Publicar vídeos prontos
+        run: python publicar_ambiente.py

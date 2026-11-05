@@ -1,0 +1,20 @@
+name: Vídeos Relacionados EN (Bloco 4)
+
+on:
+  schedule:
+    - cron: '30 9 * * 6'  # Sábado 09:30 UTC
+  workflow_dispatch:
+
+jobs:
+  linkar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      YOUTUBE_TOKEN_EN_JSON: ${{ secrets.YOUTUBE_TOKEN_EN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar dependências
+        run: pip install --quiet google-api-python-client google-auth-oauthlib google-auth-httplib2
+      - name: Linkar relacionados
+        run: python linkar_relacionados.py

@@ -1,0 +1,29 @@
+name: Atualizar Thumbnail EN (Bloco 3)
+
+on:
+  schedule:
+    - cron: '30 8 * * 6'  # Sábado 08:30 UTC
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: 'ID do vídeo (opcional — em branco = últimos 7 dias)'
+        required: false
+        default: ''
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      YOUTUBE_TOKEN_EN_JSON: ${{ secrets.YOUTUBE_TOKEN_EN }}
+      VIDEO_ID: ${{ github.event.inputs.video_id || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baixar fonte Anton
+        run: wget -q -O Anton.ttf https://github.com/google/fonts/raw/main/ofl/anton/Anton-Regular.ttf
+      - name: Instalar dependências
+        run: pip install --quiet google-api-python-client google-auth-oauthlib google-auth-httplib2 Pillow
+      - name: Atualizar thumbnails
+        run: python atualizar_thumbnail.py

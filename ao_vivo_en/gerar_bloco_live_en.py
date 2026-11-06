@@ -346,6 +346,10 @@ ABSOLUTE RULES:
     texto   = re.sub(r'(?<!\n)\n(?!\n)', ' ', texto)
     texto   = re.sub(r'\n{3,}', '\n\n', texto)
     texto   = re.sub(r'  +', ' ', texto)
+    texto   = re.sub(r'^\s*\[[^\]]{3,80}\]\s*$', '', texto, flags=re.MULTILINE)
+    texto   = re.sub(r'(?im)^[ \t]*\w+\s+[AB]\s*\([^)\n]{3,40}\)\s*:\s*', '', texto)
+    texto   = re.sub(r'[━─═]{3,}[^\n]*', '', texto)
+    texto   = re.sub(r'\n{3,}', '\n\n', texto)
     return texto.strip()
 
 

@@ -81,7 +81,7 @@ for chave in CHAVES:
             nomes = []
         lites = sorted([n for n in nomes if 'flash' in n and 'lite' in n], reverse=True)
         flashes = sorted([n for n in nomes if 'flash' in n and 'lite' not in n], reverse=True)
-        candidatos = (lites[:2] + flashes[:1]) or ['gemini-2.5-flash']
+        candidatos = (lites[:2] + flashes[:1]) or ['gemini-3.6-flash']
         for modelo in candidatos:
             try:
                 texto = c.models.generate_content(model=modelo, contents=prompt).text

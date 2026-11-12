@@ -124,7 +124,7 @@ BLOCOS_MINIMOS       = 1
 VOZ          = "en-US-JennyNeural"
 VOZ_RATE     = "-30%"
 VOZ_PITCH    = "-8Hz"
-MODELOS_LIVE = ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+MODELOS_LIVE = ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.6-flash"]
 
 CHAVES_CONTEUDO = [c for c in [
     os.environ.get("GEMINI_KEY_LIVE_CONTENT_1_EN", ""),

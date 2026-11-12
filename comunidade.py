@@ -40,7 +40,7 @@ def obter_modelo_lite():
     try:
         modelos = gemini_client.models.list()
         nomes = [m.name for m in modelos if 'generateContent' in m.supported_generation_methods]
-        for preferido in ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite']:
+        for preferido in ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite']:
             if preferido.endswith('-latest') or any(preferido in n for n in nomes):
                 return preferido
         return 'gemini-flash-lite-latest'

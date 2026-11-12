@@ -13,7 +13,7 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_EN }}
-      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS_EN }}
     steps:
       - uses: actions/checkout@v4
 

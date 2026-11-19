@@ -217,7 +217,11 @@ def baixar_video(video_id, destino_dir):
             mb = os.path.getsize(saida) / (1024 * 1024)
             print(f"    ✅ {video_id} downloaded ({mb:.0f} MB)")
             return saida
-        print(f"    ⚠️  Attempt {tentativa+1}: {r.stderr[-200:]}")
+        stderr = r.stderr
+        if "Only images are available" in stderr or "Requested format is not available" in stderr:
+            print(f"    ⏭️  {video_id} is Short/image-only — series skipped.")
+            return "SHORT"
+        print(f"    ⚠️  Attempt {tentativa+1}: {stderr[-200:]}")
         time.sleep(10)
     return None
 
@@ -325,6 +329,10 @@ def main():
         falhou = False
         for v in grupo['videos']:
             p = baixar_video(v['video_id'], pasta_serie)
+            if p == "SHORT":
+                print(f"  ⏭️  Series skipped (contains a Short).")
+                falhou = True
+                break
             if not p:
                 print(f"  ❌ Failed to download {v['video_id']} — series skipped.")
                 falhou = True

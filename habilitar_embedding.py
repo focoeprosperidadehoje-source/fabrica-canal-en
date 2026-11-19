@@ -66,6 +66,8 @@ def habilitar_embedding(video_id, privacy_status):
         ).execute()
         return True
     except HttpError as e:
+        if e.resp.status == 403 and "quotaExceeded" in str(e):
+            raise  # sobe para parar o loop
         print(f"  ❌ {video_id}: {e}")
         return False
 
@@ -91,12 +93,17 @@ def main():
     ok = 0
     for vid in bloqueados:
         privacy = status_map[vid].get("privacyStatus", "public")
-        if habilitar_embedding(vid, privacy):
-            print(f"  ✅ {vid} ({privacy}) — embedding habilitado")
-            ok += 1
+        try:
+            if habilitar_embedding(vid, privacy):
+                print(f"  ✅ {vid} ({privacy}) — embedding habilitado")
+                ok += 1
+        except HttpError:
+            print(f"  ⚠️  Quota esgotada após {ok} atualizações. Continua amanhã (23:30 UTC).")
+            break
         time.sleep(0.5)
 
-    print(f"\n✅ Concluído: {ok}/{len(bloqueados)} vídeos atualizados.")
+    restam = len(bloqueados) - ok
+    print(f"\n✅ Concluído: {ok}/{len(bloqueados)} atualizados. {restam} pendentes para próxima execução.")
 
 if __name__ == "__main__":
     main()

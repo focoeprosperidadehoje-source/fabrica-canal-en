@@ -206,7 +206,6 @@ def baixar_video(video_id, destino_dir):
         "--max-sleep-interval", "7",
         "--extractor-retries", "3",
         "--fragment-retries", "3",
-        "--extractor-args", "youtube:player_client=android",
         "-o", saida,
     ]
     if os.path.exists(COOKIES_PATH):

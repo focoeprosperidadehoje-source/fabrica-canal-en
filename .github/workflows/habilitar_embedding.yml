@@ -2,6 +2,8 @@ name: Habilitar Embedding EN
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "5 0 * * *"  # 00:05 UTC — logo após reset de cota
 
 jobs:
   habilitar:
